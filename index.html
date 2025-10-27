@@ -342,8 +342,9 @@
     $('#filter-sector').innerHTML = [''].concat(uniq(RAW.map(d=>(d.sector_economico||'').toUpperCase())).sort()).map(v=>`<option value="${v}">${v||'Todos los sectores'}</option>`).join('');
     $('#filter-tipo').innerHTML   = [''].concat(uniq(RAW.map(d=>(d.tipo_proyecto||'').toUpperCase())).sort()).map(v=>`<option value="${v}">${v||'Todos los tipos'}</option>`).join('');
     // select depa
-    const deps = uniq(RAW.map(d=>(d.departamento||'').toUpperCase())).sort();
-    $('#select-depa').innerHTML = deps.map(v=>`<option value="${v}">${v}</option>`).join('');
+  const deps = uniq(RAW.map(d=>(d.departamento||'').toUpperCase())).sort();
+  // Añadir opción por defecto para mostrar "Todos los departamentos"
+  $('#select-depa').innerHTML = [''].concat(deps).map(v=>`<option value="${v}">${v||'Todos los departamentos'}</option>`).join('');
     // poblar filtro de departamento para la tabla completa
     if($('#filter-depa')){
       $('#filter-depa').innerHTML = [''].concat(deps).map(v=>`<option value="${v}">${v||'Todos los departamentos'}</option>`).join('');
@@ -414,9 +415,10 @@
     renderHeatmap($('#heatmap'), depaCounts);
 
     // Donut sectores por dpto (tooltip “Total de empresas” y leyenda al costado)
-    const sel = $('#select-depa').value || (depaCounts[0]?.[0] || '');
-    if($('#select-depa').value!==sel && sel){ $('#select-depa').value = sel; }
-    const filtered = VIEW.filter(d=> (d.departamento||'').toUpperCase()===sel);
+  // Si el usuario no ha elegido departamento (valor ''), mostramos los datos agregados de todos
+  const sel = $('#select-depa').value || '';
+  // filtered será VIEW (todos) cuando sel === ''
+  const filtered = sel ? VIEW.filter(d=> (d.departamento||'').toUpperCase()===sel) : VIEW;
     const sectorPairs = groupCount(filtered,'sector_economico');
     renderDonut($('#chart-sector-dpto'), sectorPairs);
     renderLegend($('#legend-sector-dpto'), sectorPairs);
