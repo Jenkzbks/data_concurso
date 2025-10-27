@@ -41,6 +41,10 @@
     tbody td:last-child, thead th:last-child{border-top-right-radius:8px; border-bottom-right-radius:8px}
     .chart{width:100%; height:360px; display:block}
     .legend{display:flex; gap:10px; flex-wrap:wrap; font-size:12px; margin-top:8px}
+  .legend .item{display:flex; gap:8px; align-items:center; cursor:pointer; padding:6px 8px; border-radius:8px}
+  .legend .item:hover{background:#f8fafc}
+  .legend .item .sw{width:12px; height:12px; border-radius:3px; display:inline-block}
+  .legend .item.inactive{opacity:0.45}
     .legend.vertical{display:flex; flex-direction:column; gap:6px; align-items:flex-start}
     .dot{width:10px; height:10px; border-radius:2px; display:inline-block}
     dialog{border:none; border-radius:16px; padding:0; width:min(680px, 92vw); background:#fff; color:var(--text)}
@@ -262,6 +266,10 @@
       const rect=document.createElementNS('http://www.w3.org/2000/svg','rect');
       rect.setAttribute('x',x); rect.setAttribute('y',y); rect.setAttribute('width',w); rect.setAttribute('height',barH);
       rect.setAttribute('rx',6); rect.setAttribute('fill',color);
+      // marcar la serie para permitir resaltar desde la leyenda
+      const cls = 'series-'+label.replace(/[^a-z0-9]+/gi,'-').toLowerCase();
+      rect.setAttribute('data-label', label);
+      rect.classList.add(cls);
       rect.addEventListener('mousemove', e=>showTip(e.clientX,e.clientY, `<b>${label}</b>: ${fmt(val)}`));
       rect.addEventListener('mouseleave', hideTip);
       svg.appendChild(rect);
@@ -286,6 +294,10 @@
       ring.setAttribute('cx',cx); ring.setAttribute('cy',cy); ring.setAttribute('r',(R+r)/2);
       ring.setAttribute('fill','none'); ring.setAttribute('stroke',color);
       ring.setAttribute('stroke-width', String(R-r));
+      // marcar la serie para permitir resaltar desde la leyenda
+      const cls = 'series-'+label.replace(/[^a-z0-9]+/gi,'-').toLowerCase();
+      ring.setAttribute('data-label', label);
+      ring.classList.add(cls);
       ring.addEventListener('mousemove', e=>showTip(e.clientX,e.clientY, `<b>${label}</b>: ${fmt(val)} registros`));
       ring.addEventListener('mouseleave', hideTip);
       svg.appendChild(ring);
@@ -300,6 +312,10 @@
       const path=document.createElementNS('http://www.w3.org/2000/svg','path');
       path.setAttribute('d',`M ${x0} ${y0} A ${R} ${R} 0 ${large} 1 ${x1} ${y1} L ${cx+r*Math.cos(ang1)} ${cy+r*Math.sin(ang1)} A ${r} ${r} 0 ${large} 0 ${cx+r*Math.cos(ang0)} ${cy+r*Math.sin(ang0)} Z`);
       path.setAttribute('fill',color);
+      // marcar la serie para permitir resaltar desde la leyenda
+      const cls = 'series-'+label.replace(/[^a-z0-9]+/gi,'-').toLowerCase();
+      path.setAttribute('data-label', label);
+      path.classList.add(cls);
       path.addEventListener('mousemove', e=>showTip(e.clientX,e.clientY, `<b>${label}</b><br>Total de empresas: ${fmt(val)}`));
       path.addEventListener('mouseleave', hideTip);
       svg.appendChild(path);
@@ -308,8 +324,44 @@
   }
 
   // Leyendas
-  function renderLegend(el, pairs){
-    el.innerHTML = pairs.map(([k,v],i)=>`<span><i class="dot" style="background:${pickColor(i)}"></i>${k} <b>${fmt(v)}</b></span>`).join('');
+  // Leyenda interactiva estilo Power BI
+  const _legendStates = {};
+  function renderLegend(el, pairs, opts={}){
+    const chartId = opts.chartId || (el.id || 'legend');
+    if(!_legendStates[chartId]) _legendStates[chartId] = new Set();
+    const state = _legendStates[chartId];
+    el.innerHTML = '';
+    pairs.forEach(([k,v],i)=>{
+      const label = k || '—';
+      const key = label;
+      const color = pickColor(i);
+      const item = document.createElement('div'); item.className='item';
+      if(state.size && !state.has(key)) item.classList.add('inactive');
+      item.innerHTML = `<span class="sw" style="background:${color}"></span><span style="min-width:160px;display:inline-block">${label}</span><b>${fmt(v)}</b>`;
+      // hover -> resaltar series en el SVG
+      item.addEventListener('mouseenter', ()=>{
+        document.querySelectorAll('[class^="series-"]').forEach(n=>n.style.opacity='0.15');
+        const cls = '.series-'+key.replace(/[^a-z0-9]+/gi,'-').toLowerCase();
+        document.querySelectorAll(cls).forEach(n=>n.style.opacity='1');
+      });
+      item.addEventListener('mouseleave', ()=>{
+        document.querySelectorAll('[class^="series-"]').forEach(n=>n.style.opacity='1');
+      });
+      // click -> toggle inclusión (si hay al menos uno activo, mostramos solo los activos)
+      item.addEventListener('click', ()=>{
+        if(state.has(key)) state.delete(key); else state.add(key);
+        // actualizar clases visuales
+        Array.from(el.children).forEach(ch=>ch.classList.remove('inactive'));
+        Array.from(el.children).forEach(ch=>{
+          const txt = ch.textContent.trim();
+          const lbl = txt.replace(/\s+\d+[.,\s]*$/,'');
+          if(state.size && !state.has(lbl)) ch.classList.add('inactive');
+        });
+        // llamar callback si existe
+        if(typeof opts.onChange === 'function') opts.onChange();
+      });
+      el.appendChild(item);
+    });
   }
 
   // Heatmap cards + tooltip
@@ -375,12 +427,12 @@
   // General (arriba)
   function renderGeneral(){
     const tipo = groupCount(VIEW,'tipo_proyecto');
-    renderDonut($('#chart-gen-tipo'), tipo);
-    renderLegend($('#legend-gen-tipo'), tipo);
+  renderDonut($('#chart-gen-tipo'), tipo);
+  renderLegend($('#legend-gen-tipo'), tipo, {chartId: 'gen-tipo', onChange: renderGeneral});
 
     const depa = groupCount(VIEW,'departamento').slice(0,10);
-    renderBarClassic($('#chart-gen-depa'), depa, {maxBars:10});
-    $('#legend-gen-depa').innerHTML = depa.map(([k,v],i)=>`<span><i class="dot" style="background:${pickColor(i)}"></i>${k} <b>${fmt(v)}</b></span>`).join('');
+  renderBarClassic($('#chart-gen-depa'), depa, {maxBars:10});
+  renderLegend($('#legend-gen-depa'), depa, {chartId: 'gen-depa', onChange: renderGeneral});
   }
 
   function renderTable(){
@@ -420,8 +472,8 @@
   // filtered será VIEW (todos) cuando sel === ''
   const filtered = sel ? VIEW.filter(d=> (d.departamento||'').toUpperCase()===sel) : VIEW;
     const sectorPairs = groupCount(filtered,'sector_economico');
-    renderDonut($('#chart-sector-dpto'), sectorPairs);
-    renderLegend($('#legend-sector-dpto'), sectorPairs);
+  renderDonut($('#chart-sector-dpto'), sectorPairs);
+  renderLegend($('#legend-sector-dpto'), sectorPairs, {chartId: 'sector-dpto', onChange: renderViews});
 
     // Tabla
     renderTable();
