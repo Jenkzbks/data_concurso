@@ -459,7 +459,7 @@
 
   // ===== CARGA AUTOMÁTICA =====
   async function loadPreferExternal(){
-    const FILE_NAME = 'data_final.csv'; // mismo directorio que este HTML
+    const FILE_NAME = 'data_final.utf8.csv'; // mismo directorio que este HTML
     try{
       const res = await fetch(FILE_NAME, {cache:'no-store'});
       if(!res.ok) throw new Error('No encontrado');
