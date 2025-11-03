@@ -22,9 +22,9 @@
     .card{background:var(--card); border:1px solid var(--grid); border-radius:16px; padding:16px; box-shadow:0 6px 24px rgba(0,0,0,.06)}
     .row{display:flex; gap:12px; align-items:center; flex-wrap:wrap}
     .muted{color:var(--muted)}
-    .btn,button{background:#f3f4f6; color:var(--text); border:1px solid var(--grid); border-radius:10px; padding:8px 12px; cursor:pointer}
+    .btn,button{background:#f3f4f6; color:#111827; border:1px solid var(--grid); border-radius:10px; padding:8px 12px; cursor:pointer}
     .btn:hover,button:hover{background:#e5e7eb}
-    input,select{background:#fff; color:var(--text); border:1px solid var(--grid); border-radius:10px; padding:8px 10px}
+    input,select{background:#fff; color:#111827; border:1px solid var(--grid); border-radius:10px; padding:8px 10px}
     .kpi{display:flex; flex-direction:column; gap:4px; padding:14px; border:1px solid var(--grid); border-radius:12px; background:#fff}
     .kpi b{font-size:22px}
     .tabs{display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap}
@@ -41,24 +41,20 @@
     tbody td:last-child, thead th:last-child{border-top-right-radius:8px; border-bottom-right-radius:8px}
     .chart{width:100%; height:360px; display:block}
     .legend{display:flex; gap:10px; flex-wrap:wrap; font-size:12px; margin-top:8px}
-  .legend .item{display:flex; gap:8px; align-items:center; cursor:pointer; padding:6px 8px; border-radius:8px}
-  .legend .item:hover{background:#f8fafc}
-  .legend .item .sw{width:12px; height:12px; border-radius:3px; display:inline-block}
-  .legend .item.inactive{opacity:0.45}
+    .legend .item{display:flex; gap:8px; align-items:center; cursor:pointer; padding:6px 8px; border-radius:8px}
+    .legend .item:hover{background:#f8fafc}
+    .legend .item .sw{width:12px; height:12px; border-radius:3px; display:inline-block}
+    .legend .item.inactive{opacity:0.45}
     .legend.vertical{display:flex; flex-direction:column; gap:6px; align-items:flex-start}
-    .dot{width:10px; height:10px; border-radius:2px; display:inline-block}
-    dialog{border:none; border-radius:16px; padding:0; width:min(680px, 92vw); background:#fff; color:var(--text)}
+    dialog{border:none; border-radius:16px; padding:0; width:min(680px, 92vw); background:#fff; color:#111827}
     .modal-head{padding:16px; border-bottom:1px solid var(--grid); display:flex; justify-content:space-between; align-items:center}
     .modal-body{padding:16px}
     .modal-grid{display:grid; grid-template-columns:180px 1fr; gap:8px}
     .close-x{background:transparent; border:none; color:#6b7280; font-size:20px; cursor:pointer}
-    /* Heatmap cards */
     .heatmap{display:grid; grid-template-columns:repeat(auto-fill, minmax(220px,1fr)); gap:10px}
     .heatcell{border:1px solid var(--grid); border-radius:10px; padding:10px; background:#fff}
     .bar{height:10px; border-radius:6px; background:linear-gradient(90deg, #e5f2ff, #1d4ed8)}
-    /* Banner */
     .banner{background:#1d4ed8; color:#fff; padding:10px 16px; border-radius:12px; text-align:center; letter-spacing:.5px; font-weight:600}
-    /* Tooltip flotante */
     #tooltip{
       position:fixed; z-index:1000; pointer-events:none;
       background:#ffffff; color:#111827; border:1px solid #e5e7eb;
@@ -68,7 +64,6 @@
     }
     #tooltip.show{opacity:1}
     #tooltip b{font-weight:600}
-    /* Layout combo+gráfico+leyenda lateral */
     .row-split{display:flex; gap:16px; align-items:flex-start}
     .row-split .side{width:240px; flex:0 0 240px}
     .row-split .main{flex:1}
@@ -78,26 +73,20 @@
   <header>
     <div class="wrap row">
       <h1 style="flex:1">📊 Dashboard de Empresas</h1>
-      <!-- Filtros globales (dejamos aquí) -->
-      <select id="filter-sector"><option value="">Todos los sectores</option></select>
-      <select id="filter-tipo"><option value="">Todos los tipos</option></select>
+      <select id="filter-area"><option value="">Todas las áreas</option></select>
+      <select id="filter-tiponuevo"><option value="">Todos los tipos</option></select>
     </div>
   </header>
 
   <main class="wrap">
-
-    <!-- ============ INFORMACIÓN GENERAL (arriba) ============ -->
     <section class="card">
       <div class="banner">INFORMACIÓN GENERAL DE PROYECTOS</div>
       <div style="height:12px"></div>
       <div class="grid cols-4">
         <div class="kpi"><span class="muted">Total registros</span><b id="kpi-total">0</b></div>
+        <div class="kpi"><span class="muted">Áreas</span><b id="kpi-areas">0</b></div>
         <div class="kpi"><span class="muted">Tipos de proyecto</span><b id="kpi-tipos">0</b></div>
-        <div class="kpi"><span class="muted">Sectores económicos</span><b id="kpi-sectores">0</b></div>
-        <div class="kpi">
-          <span class="muted">Contactables (Tel / Mail)</span>
-          <b><span id="kpi-tel">0</span> / <span id="kpi-mail">0</span></b>
-        </div>
+        <div class="kpi"><span class="muted">Contactables (Tel / Mail)</span><b><span id="kpi-tel">0</span> / <span id="kpi-mail">0</span></b></div>
       </div>
 
       <div style="height:12px"></div>
@@ -116,31 +105,34 @@
       </div>
     </section>
 
-    <!-- ============ VISTAS ============ -->
     <section class="card" style="margin-top:16px">
       <h2>Vistas</h2>
       <div class="row" style="margin-bottom:10px">
         <div class="tabs" role="tablist" style="flex:1">
-          <button class="tab active" data-view="v-sectordpto" role="tab">Sectores por departamento</button>
+          <button class="tab active" data-view="v-areadpto" role="tab">Distribución por departamento</button>
           <button class="tab" data-view="v-heatmap" role="tab">Mapa de calor (Departamentos)</button>
           <button class="tab" data-view="v-tabla" role="tab">Tabla completa</button>
         </div>
-        
       </div>
 
-      <!-- Sectores por Dpto (combo + donut + leyenda lateral) -->
-      <div class="view active" id="v-sectordpto">
+      <!-- Distribución por Dpto (Agrupar por: Área / Tipo) -->
+      <div class="view active" id="v-areadpto">
         <div class="row-split">
           <div class="main">
             <div class="row" style="margin-bottom:10px">
               <label class="muted">Departamento:</label>
               <select id="select-depa"></select>
+              <span class="muted" style="margin-left:12px">Agrupar por:</span>
+              <select id="group-by">
+                <option value="por_area">Área</option>
+                <option value="por_tipo_proyecto">Tipo</option>
+              </select>
             </div>
-            <svg id="chart-sector-dpto" class="chart" viewBox="0 0 800 360"></svg>
+            <svg id="chart-group-dpto" class="chart" viewBox="0 0 800 360"></svg>
           </div>
           <div class="side">
             <h3 style="margin:0 0 8px;font-size:14px" class="muted">Leyenda</h3>
-            <div id="legend-sector-dpto" class="legend vertical"></div>
+            <div id="legend-group-dpto" class="legend vertical"></div>
           </div>
         </div>
       </div>
@@ -154,7 +146,7 @@
       <!-- Tabla completa -->
       <div class="view" id="v-tabla">
         <div class="row" style="margin-bottom:10px">
-            <input id="search" placeholder="Buscar (RUC, Razón, Título, Sector…)" style="min-width:280px" />
+            <input id="search" placeholder="Buscar (RUC, Razón, Título, Área, Tipo…)" style="min-width:280px" />
             <select id="filter-depa" style="margin-left:8px"><option value="">Todos los departamentos</option></select>
         </div>
         <div style="overflow:auto; max-height:520px">
@@ -171,7 +163,6 @@
     </section>
   </main>
 
-  <!-- MODAL -->
   <dialog id="modal">
     <div class="modal-head">
       <div>
@@ -183,6 +174,8 @@
     <div class="modal-body">
       <div class="modal-grid">
         <div class="muted">Lugar</div><div id="m-lugar"></div>
+        <div class="muted">Área</div><div id="m-area"></div>
+        <div class="muted">Tipo de proyecto</div><div id="m-tipo"></div>
         <div class="muted">Sector económico</div><div id="m-sector"></div>
         <div class="muted">Actividad económica</div><div id="m-actividad"></div>
         <div class="muted">Correo</div><div id="m-mail"></div>
@@ -191,17 +184,11 @@
     </div>
   </dialog>
 
-  <!-- Tooltip flotante -->
   <div id="tooltip"></div>
-
-  <!-- CSV embebido opcional (fallback). Si no usarás hosting, pega aquí tu CSV -->
   <script id="csv-data" type="text/plain"></script>
 
   <script>
-  // Helpers
   const $=(s,e=document)=>e.querySelector(s), $$=(s,e=document)=>[...e.querySelectorAll(s)], fmt=n=>new Intl.NumberFormat('es-PE').format(n);
-
-  // Tooltip flotante
   const tip = $('#tooltip');
   function showTip(x,y, html){
     tip.innerHTML = html;
@@ -211,13 +198,11 @@
     if(tx + r.width + pad > innerWidth) tx = innerWidth - r.width - pad;
     if(ty + r.height + pad > innerHeight) ty = innerHeight - r.height - pad;
     if(ty < pad) ty = pad;
-    tip.style.left = tx + 'px';
-    tip.style.top  = ty + 'px';
+    tip.style.left = tx + 'px'; tip.style.top  = ty + 'px';
     tip.classList.add('show');
   }
   function hideTip(){ tip.classList.remove('show'); }
 
-  // CSV parser básico (delimitador ;)
   function parseCSV(t,d=';'){
     const rows=[]; let cur='', row=[], inQ=false;
     for(let i=0;i<t.length;i++){
@@ -229,9 +214,7 @@
     }
     if(cur.length||row.length){ row.push(cur); rows.push(row); }
     const headers = (rows.shift()||[]).map(h=>h.trim());
-    return rows.filter(r=>r.some(v=>v&&v.trim())).map(r=>{
-      const o={}; headers.forEach((h,i)=>o[h]=(r[i]||'').trim()); return o;
-    });
+    return rows.filter(r=>r.some(v=>v&&v.trim())).map(r=>{ const o={}; headers.forEach((h,i)=>o[h]=(r[i]||'').trim()); return o; });
   }
 
   const uniq = a => [...new Set(a.filter(Boolean))];
@@ -242,8 +225,6 @@
   };
   const pickColor = i => ['#2563eb','#16a34a','#f59e0b','#dc2626','#7e22ce','#db2777','#0891b2','#65a30d','#ea580c','#0ea5e9','#10b981','#a855f7'][i%12];
 
-  // ---------- CHARTS ----------
-  // 2) Barras horizontales clásicas (con eje de categorías a la izquierda)
   function renderBarClassic(svg, pairs, {maxBars=10}={}){
     const W=800,H=360; svg.innerHTML='';
     const padTop=20, padBottom=30, padLeft=150, padRight=40, gap=8;
@@ -251,22 +232,19 @@
     const maxV=Math.max(1, ...data.map(d=>d[1]));
     const barH=(H-padTop-padBottom-gap*(data.length-1))/Math.max(1,data.length);
 
-    // Eje Y (labels)
-    data.forEach(([label,val],i)=>{
+    data.forEach(([label],i)=>{
       const y=padTop+i*(barH+gap)+barH/2+4;
       const t=document.createElementNS('http://www.w3.org/2000/svg','text');
       t.setAttribute('x',padLeft-8); t.setAttribute('y',y);
       t.setAttribute('text-anchor','end'); t.textContent=label; svg.appendChild(t);
     });
 
-    // Barras
     data.forEach(([label,val],i)=>{
       const y=padTop+i*(barH+gap), x=padLeft;
       const w=(W-padLeft-padRight)*(val/maxV), color=pickColor(i);
       const rect=document.createElementNS('http://www.w3.org/2000/svg','rect');
       rect.setAttribute('x',x); rect.setAttribute('y',y); rect.setAttribute('width',w); rect.setAttribute('height',barH);
       rect.setAttribute('rx',6); rect.setAttribute('fill',color);
-      // marcar la serie para permitir resaltar desde la leyenda
       const cls = 'series-'+label.replace(/[^a-z0-9]+/gi,'-').toLowerCase();
       rect.setAttribute('data-label', label);
       rect.classList.add(cls);
@@ -274,14 +252,12 @@
       rect.addEventListener('mouseleave', hideTip);
       svg.appendChild(rect);
 
-      // valor al final
       const t=document.createElementNS('http://www.w3.org/2000/svg','text');
       t.setAttribute('x',x+w+4); t.setAttribute('y',y+barH/2+4);
       t.textContent=fmt(val); svg.appendChild(t);
     });
   }
 
-  // 1) Donut con caso especial 1 sola categoría => círculo completo
   function renderDonut(svg, pairs){
     const W=800,H=360,cx=W/2,cy=H/2,R=120,r=70; svg.innerHTML='';
     const total=Math.max(1,pairs.reduce((a,[,v])=>a+v,0));
@@ -289,19 +265,15 @@
 
     if(pairs.length===1){
       const [label,val]=pairs[0]; const color=pickColor(0);
-      // Círculo completo con stroke (anillo)
       const ring=document.createElementNS('http://www.w3.org/2000/svg','circle');
       ring.setAttribute('cx',cx); ring.setAttribute('cy',cy); ring.setAttribute('r',(R+r)/2);
       ring.setAttribute('fill','none'); ring.setAttribute('stroke',color);
       ring.setAttribute('stroke-width', String(R-r));
-      // marcar la serie para permitir resaltar desde la leyenda
       const cls = 'series-'+label.replace(/[^a-z0-9]+/gi,'-').toLowerCase();
-      ring.setAttribute('data-label', label);
-      ring.classList.add(cls);
+      ring.setAttribute('data-label', label); ring.classList.add(cls);
       ring.addEventListener('mousemove', e=>showTip(e.clientX,e.clientY, `<b>${label}</b>: ${fmt(val)} registros`));
       ring.addEventListener('mouseleave', hideTip);
-      svg.appendChild(ring);
-      return;
+      svg.appendChild(ring); return;
     }
 
     pairs.forEach(([label,val],i)=>{
@@ -312,19 +284,14 @@
       const path=document.createElementNS('http://www.w3.org/2000/svg','path');
       path.setAttribute('d',`M ${x0} ${y0} A ${R} ${R} 0 ${large} 1 ${x1} ${y1} L ${cx+r*Math.cos(ang1)} ${cy+r*Math.sin(ang1)} A ${r} ${r} 0 ${large} 0 ${cx+r*Math.cos(ang0)} ${cy+r*Math.sin(ang0)} Z`);
       path.setAttribute('fill',color);
-      // marcar la serie para permitir resaltar desde la leyenda
       const cls = 'series-'+label.replace(/[^a-z0-9]+/gi,'-').toLowerCase();
-      path.setAttribute('data-label', label);
-      path.classList.add(cls);
+      path.setAttribute('data-label', label); path.classList.add(cls);
       path.addEventListener('mousemove', e=>showTip(e.clientX,e.clientY, `<b>${label}</b><br>Total de empresas: ${fmt(val)}`));
       path.addEventListener('mouseleave', hideTip);
-      svg.appendChild(path);
-      ang0=ang1;
+      svg.appendChild(path); ang0=ang1;
     });
   }
 
-  // Leyendas
-  // Leyenda interactiva estilo Power BI
   const _legendStates = {};
   function renderLegend(el, pairs, opts={}){
     const chartId = opts.chartId || (el.id || 'legend');
@@ -338,7 +305,6 @@
       const item = document.createElement('div'); item.className='item';
       if(state.size && !state.has(key)) item.classList.add('inactive');
       item.innerHTML = `<span class="sw" style="background:${color}"></span><span style="min-width:160px;display:inline-block">${label}</span><b>${fmt(v)}</b>`;
-      // hover -> resaltar series en el SVG
       item.addEventListener('mouseenter', ()=>{
         document.querySelectorAll('[class^="series-"]').forEach(n=>n.style.opacity='0.15');
         const cls = '.series-'+key.replace(/[^a-z0-9]+/gi,'-').toLowerCase();
@@ -347,24 +313,20 @@
       item.addEventListener('mouseleave', ()=>{
         document.querySelectorAll('[class^="series-"]').forEach(n=>n.style.opacity='1');
       });
-      // click -> toggle inclusión (si hay al menos uno activo, mostramos solo los activos)
       item.addEventListener('click', ()=>{
         if(state.has(key)) state.delete(key); else state.add(key);
-        // actualizar clases visuales
         Array.from(el.children).forEach(ch=>ch.classList.remove('inactive'));
         Array.from(el.children).forEach(ch=>{
           const txt = ch.textContent.trim();
           const lbl = txt.replace(/\s+\d+[.,\s]*$/,'');
           if(state.size && !state.has(lbl)) ch.classList.add('inactive');
         });
-        // llamar callback si existe
         if(typeof opts.onChange === 'function') opts.onChange();
       });
       el.appendChild(item);
     });
   }
 
-  // Heatmap cards + tooltip
   function renderHeatmap(el, counts){
     el.innerHTML=''; if(!counts.length){ el.textContent='Sin datos'; return; }
     const maxV = Math.max(...counts.map(c=>c[1]));
@@ -382,100 +344,96 @@
     });
   }
 
-  // ---------- DATA + UI ----------
   let RAW=[], VIEW=[];
   function normalizeKeys(o){
-    const keys=['id_empresas','razon_social','ruc','titulo','tipo_proyecto','estado','direccion','departamento','provincia','distrito','actividad_economica','sector_economico','telefono','correo'];
+    const keys=['id_empresas','razon_social','ruc','titulo','estado','direccion','departamento','provincia','distrito','actividad_economica','sector_economico','telefono','correo','por_area','por_tipo_proyecto'];
     const out={}; keys.forEach(k=> out[k]= o[k] ?? o[k?.toUpperCase?.()] ?? o[k?.toLowerCase?.()] ?? ''); return out;
   }
+
   function loadData(rows){
     RAW = rows.map(normalizeKeys); VIEW=[...RAW];
-    // filtros globales
-    $('#filter-sector').innerHTML = [''].concat(uniq(RAW.map(d=>(d.sector_economico||'').toUpperCase())).sort()).map(v=>`<option value="${v}">${v||'Todos los sectores'}</option>`).join('');
-    $('#filter-tipo').innerHTML   = [''].concat(uniq(RAW.map(d=>(d.tipo_proyecto||'').toUpperCase())).sort()).map(v=>`<option value="${v}">${v||'Todos los tipos'}</option>`).join('');
-    // select depa
-  const deps = uniq(RAW.map(d=>(d.departamento||'').toUpperCase())).sort();
-  // Añadir opción por defecto para mostrar "Todos los departamentos"
-  $('#select-depa').innerHTML = [''].concat(deps).map(v=>`<option value="${v}">${v||'Todos los departamentos'}</option>`).join('');
-    // poblar filtro de departamento para la tabla completa
+
+    const areas = [''].concat(uniq(RAW.map(d=>(d.por_area||'').toUpperCase())).sort());
+    $('#filter-area').innerHTML = areas.map(v=>`<option value="${v}">${v||'Todas las áreas'}</option>`).join('');
+
+    const tipos = [''].concat(uniq(RAW.map(d=>(d.por_tipo_proyecto||'').toUpperCase())).sort());
+    $('#filter-tiponuevo').innerHTML = tipos.map(v=>`<option value="${v}">${v||'Todos los tipos'}</option>`).join('');
+
+    const deps = uniq(RAW.map(d=>(d.departamento||'').toUpperCase())).sort();
+    $('#select-depa').innerHTML = [''].concat(deps).map(v=>`<option value="${v}">${v||'Todos los departamentos'}</option>`).join('');
     if($('#filter-depa')){
       $('#filter-depa').innerHTML = [''].concat(deps).map(v=>`<option value="${v}">${v||'Todos los departamentos'}</option>`).join('');
     }
+
     refreshAll();
   }
 
   function applyFilters(){
-    const fs = $('#filter-sector').value;
-    const ft = $('#filter-tipo').value;
+    const fa = $('#filter-area').value;
+    const ft = $('#filter-tiponuevo').value;
     const fd = ($('#filter-depa') ? $('#filter-depa').value : '');
-    // VIEW se usa para KPIs y gráficos; NO incluye búsqueda
-  VIEW = RAW.filter(d=>{
-    const okS = !fs || (d.sector_economico||'').toUpperCase() === fs;
-    const okT = !ft || (d.tipo_proyecto||'').toUpperCase() === ft;
-    const okD = !fd || (d.departamento||'').toUpperCase() === fd;
-    return okS && okT && okD;
-  });
-  }
-  function updateKpis(){
-    $('#kpi-total').textContent = fmt(VIEW.length);
-    $('#kpi-tipos').textContent = fmt(uniq(VIEW.map(d=>(d.tipo_proyecto||'').toUpperCase())).length);
-    $('#kpi-sectores').textContent = fmt(uniq(VIEW.map(d=>(d.sector_economico||'').toUpperCase())).length);
-    $('#kpi-tel').textContent = fmt(VIEW.filter(d=> (d.telefono||'').trim()).length);
-    $('#kpi-mail').textContent = fmt(VIEW.filter(d=> (d.correo||'').trim()).length);
+
+    VIEW = RAW.filter(d=>{
+      const okA = !fa || (d.por_area||'').toUpperCase() === fa;
+      const okT = !ft || (d.por_tipo_proyecto||'').toUpperCase() === ft;
+      const okD = !fd || (d.departamento||'').toUpperCase() === fd;
+      return okA && okT && okD;
+    });
   }
 
-  // General (arriba)
+  function updateKpis(){
+    $('#kpi-total').textContent   = fmt(VIEW.length);
+    $('#kpi-areas').textContent   = fmt(uniq(VIEW.map(d=>(d.por_area||'').toUpperCase())).length);
+    $('#kpi-tipos').textContent   = fmt(uniq(VIEW.map(d=>(d.por_tipo_proyecto||'').toUpperCase())).length);
+    $('#kpi-tel').textContent     = fmt(VIEW.filter(d=> (d.telefono||'').trim()).length);
+    $('#kpi-mail').textContent    = fmt(VIEW.filter(d=> (d.correo||'').trim()).length);
+  }
+
   function renderGeneral(){
-    const tipo = groupCount(VIEW,'tipo_proyecto');
-  renderDonut($('#chart-gen-tipo'), tipo);
-  renderLegend($('#legend-gen-tipo'), tipo, {chartId: 'gen-tipo', onChange: renderGeneral});
+    const tipoPairs = groupCount(VIEW,'por_tipo_proyecto');
+    renderDonut($('#chart-gen-tipo'), tipoPairs);
+    renderLegend($('#legend-gen-tipo'), tipoPairs, {chartId: 'gen-tipo', onChange: renderGeneral});
 
     const depa = groupCount(VIEW,'departamento').slice(0,10);
-  renderBarClassic($('#chart-gen-depa'), depa, {maxBars:10});
-  renderLegend($('#legend-gen-depa'), depa, {chartId: 'gen-depa', onChange: renderGeneral});
+    renderBarClassic($('#chart-gen-depa'), depa, {maxBars:10});
+    renderLegend($('#legend-gen-depa'), depa, {chartId: 'gen-depa', onChange: renderGeneral});
   }
 
   function renderTable(){
-  const tb = $('#table tbody'); if(!tb) return; tb.innerHTML='';
-  const q = ($('#search')?.value || '').trim().toLowerCase();
+    const tb = $('#table tbody'); if(!tb) return; tb.innerHTML='';
+    const q = ($('#search')?.value || '').trim().toLowerCase();
 
-  // Partimos de VIEW (ya filtrado por sector/tipo) y aquí aplicamos búsqueda
-  const data = !q ? VIEW : VIEW.filter(d=>{
-    return ['ruc','razon_social','titulo','sector_economico','tipo_proyecto','departamento','provincia','distrito']
-      .some(k => (d[k]||'').toString().toLowerCase().includes(q));
-  });
+    const data = !q ? VIEW : VIEW.filter(d=>{
+      return ['ruc','razon_social','titulo','por_area','por_tipo_proyecto','departamento','provincia','distrito']
+        .some(k => (d[k]||'').toString().toLowerCase().includes(q));
+    });
 
-  data.forEach(d=>{
-    const tr=document.createElement('tr');
-    tr.innerHTML = `
-      <td>${d.id_empresas||''}</td>
-      <td>${d.ruc||''}</td>
-      <td>${d.razon_social||''}</td>
-      <td>${d.titulo||''}</td>
-      <td>${d.tipo_proyecto||''}</td>`;
-    tr.addEventListener('click',()=>openModal(d));
-    tb.appendChild(tr);
-  });
-}
+    data.forEach(d=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML = `
+        <td>${d.id_empresas||''}</td>
+        <td>${d.ruc||''}</td>
+        <td>${d.razon_social||''}</td>
+        <td>${d.titulo||''}</td>
+        <td>${d.por_tipo_proyecto||''}</td>`;
+      tr.addEventListener('click',()=>openModal(d));
+      tb.appendChild(tr);
+    });
+  }
 
   function renderViews(){
-    // GENERAL
     renderGeneral();
 
-    // Heatmap
     const depaCounts = groupCount(VIEW,'departamento');
     renderHeatmap($('#heatmap'), depaCounts);
 
-    // Donut sectores por dpto (tooltip “Total de empresas” y leyenda al costado)
-  // Si el usuario no ha elegido departamento (valor ''), mostramos los datos agregados de todos
-  const sel = $('#select-depa').value || '';
-  // filtered será VIEW (todos) cuando sel === ''
-  const filtered = sel ? VIEW.filter(d=> (d.departamento||'').toUpperCase()===sel) : VIEW;
-    const sectorPairs = groupCount(filtered,'sector_economico');
-  renderDonut($('#chart-sector-dpto'), sectorPairs);
-  renderLegend($('#legend-sector-dpto'), sectorPairs, {chartId: 'sector-dpto', onChange: renderViews});
+    const selDep = $('#select-depa').value || '';
+    const grpKey = $('#group-by').value || 'por_area'; // <-- toggle Área / Tipo
+    const filtered = selDep ? VIEW.filter(d=> (d.departamento||'').toUpperCase()===selDep) : VIEW;
+    const pairs = groupCount(filtered, grpKey);
+    renderDonut($('#chart-group-dpto'), pairs);
+    renderLegend($('#legend-group-dpto'), pairs, {chartId: 'group-dpto', onChange: renderViews});
 
-    // Tabla
     renderTable();
   }
 
@@ -486,22 +444,21 @@
     const pro = (d.provincia||'').toString().trim();
     const dis = (d.distrito||'').toString().trim();
     const lugar = [dep, pro, dis].filter(Boolean).join(' / ') || '—';
-    $('#m-ruc').textContent = d.ruc || '—';
+    $('#m-ruc').textContent   = d.ruc || '—';
     $('#m-razon').textContent = d.razon_social || '—';
     $('#m-lugar').textContent = lugar;
+    $('#m-area').textContent  = d.por_area || '—';
+    $('#m-tipo').textContent  = d.por_tipo_proyecto || '—';
     $('#m-sector').textContent = d.sector_economico || '—';
     $('#m-actividad').textContent = d.actividad_economica || '—';
-    $('#m-mail').textContent = d.correo || '—';
-    $('#m-tel').textContent = d.telefono || '—';
+    $('#m-mail').textContent  = d.correo || '—';
+    $('#m-tel').textContent   = d.telefono || '—';
     document.getElementById('modal').showModal();
   }
 
-  // Eventos
-  document.addEventListener('input', e=>{
-    if(e.target && (e.target.id==='search')) refreshAll();
-  });
-  $('#filter-sector').addEventListener('change', refreshAll);
-  $('#filter-tipo').addEventListener('change', refreshAll);
+  document.addEventListener('input', e=>{ if(e.target && (e.target.id==='search')) renderTable(); });
+  $('#filter-area').addEventListener('change', refreshAll);
+  $('#filter-tiponuevo').addEventListener('change', refreshAll);
   if($('#filter-depa')) $('#filter-depa').addEventListener('change', refreshAll);
   $$('.tab').forEach(btn=>{
     btn.addEventListener('click', ()=>{
@@ -510,10 +467,10 @@
     });
   });
   $('#select-depa').addEventListener('change', renderViews);
+  $('#group-by').addEventListener('change', renderViews);
 
-  // ===== CARGA AUTOMÁTICA =====
   async function loadPreferExternal(){
-    const FILE_NAME = 'data_final.utf8.csv'; // mismo directorio que este HTML
+    const FILE_NAME = 'data_final.csv';
     try{
       const res = await fetch(FILE_NAME, {cache:'no-store'});
       if(!res.ok) throw new Error('No encontrado');
