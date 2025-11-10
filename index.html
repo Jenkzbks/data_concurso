@@ -3,123 +3,165 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Dashboard de Empresas — HTML Autosuficiente</title>
+  <title>Dashboard de Empresas — Estilo Power BI</title>
   <style>
-    :root{ --bg:#ffffff; --card:#ffffff; --muted:#6b7280; --text:#111827; --accent:#1d4ed8; --grid:#e5e7eb }
+    /* ====== Look & feel “Power BI” ====== */
+    :root{
+      --bg:#f5f6f8; --card:#ffffff; --muted:#6b7280; --text:#101828; --accent:#1d4ed8; --grid:#e5e7eb;
+      --card-shadow:0 10px 24px rgba(16,24,40,.06);
+      --kpi-grad:linear-gradient(180deg, #f9fafb, #eef2ff);
+      --tab-bg:#ffffff; --tab-active:#eef2ff; --chip:#f3f4f6;
+    }
     *{box-sizing:border-box}
     html,body{height:100%}
-    body{margin:0; font-family:Inter, ui-sans-serif, system-ui,-apple-system, Segoe UI, Roboto; background:var(--bg); color:var(--text)}
+    body{margin:0; font-family:Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto; background:var(--bg); color:var(--text)}
     header{position:sticky; top:0; z-index:10; background:#fff; border-bottom:1px solid var(--grid)}
-    .wrap{max-width:1200px; margin:0 auto; padding:16px}
+    .wrap{max-width:1280px; margin:0 auto; padding:16px}
+
     h1{font-size:22px; margin:8px 0 12px}
     h2{font-size:18px; margin:0 0 10px}
+    .muted{color:var(--muted)}
     .grid{display:grid; gap:16px}
     .grid.cols-4{grid-template-columns:repeat(4,1fr)}
     .grid.cols-3{grid-template-columns:repeat(3,1fr)}
     .grid.cols-2{grid-template-columns:repeat(2,1fr)}
-    @media(max-width:1000px){.grid.cols-4{grid-template-columns:repeat(2,1fr)}.grid.cols-3{grid-template-columns:repeat(2,1fr)}.grid.cols-2{grid-template-columns:1fr}}
-    @media(max-width:720px){.grid.cols-4,.grid.cols-3{grid-template-columns:1fr}}
-    .card{background:var(--card); border:1px solid var(--grid); border-radius:16px; padding:16px; box-shadow:0 6px 24px rgba(0,0,0,.06)}
+    @media(max-width:1100px){.grid.cols-4{grid-template-columns:repeat(2,1fr)}.grid.cols-3{grid-template-columns:repeat(2,1fr)}.grid.cols-2{grid-template-columns:1fr}}
+    @media(max-width:720px){.grid.cols-4,.grid.cols-3,.grid.cols-2{grid-template-columns:1fr}}
+
     .row{display:flex; gap:12px; align-items:center; flex-wrap:wrap}
-    .muted{color:var(--muted)}
-    .btn,button{background:#f3f4f6; color:#111827; border:1px solid var(--grid); border-radius:10px; padding:8px 12px; cursor:pointer}
-    .btn:hover,button:hover{background:#e5e7eb}
+    .card{background:var(--card); border:1px solid var(--grid); border-radius:14px; padding:16px; box-shadow:var(--card-shadow)}
+    .kpi{display:flex; flex-direction:column; gap:6px; padding:16px; border-radius:12px; background:var(--kpi-grad); border:1px solid #e9eefc}
+    .kpi small{font-size:12px; color:#64748b}
+    .kpi b{font-size:24px; letter-spacing:.2px}
+
+    .btn{background:#111827; color:#fff; border:1px solid #0b1220; border-radius:10px; padding:8px 12px; cursor:pointer}
+    .btn:hover{opacity:.95}
+    .ghost{background:var(--chip); color:#111827; border:1px solid var(--grid)}
     input,select{background:#fff; color:#111827; border:1px solid var(--grid); border-radius:10px; padding:8px 10px}
-    .kpi{display:flex; flex-direction:column; gap:4px; padding:14px; border:1px solid var(--grid); border-radius:12px; background:#fff}
-    .kpi b{font-size:22px}
+
     .tabs{display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap}
-    .tab{padding:10px 14px; border-radius:10px; border:1px solid var(--grid); background:#fff; cursor:pointer}
-    .tab.active{outline:2px solid var(--accent)}
+    .tab{padding:10px 14px; border-radius:10px; border:1px solid var(--grid); background:var(--tab-bg); cursor:pointer}
+    .tab.active{outline:2px solid var(--accent); background:var(--tab-active)}
+
     .view{display:none}
     .view.active{display:block}
+
     table{width:100%; border-collapse:separate; border-spacing:0 8px}
     th,td{text-align:left; padding:10px 12px; vertical-align:top}
-    thead th{font-size:12px; color:#374151; position:sticky; top:0; background:#fff}
+    thead th{font-size:12px; color:#374151; position:sticky; top:0; background:#fff; z-index:1}
     tbody tr{background:#fff; border:1px solid var(--grid)}
     tbody tr:hover{background:#f9fafb}
     tbody td:first-child, thead th:first-child{border-top-left-radius:8px; border-bottom-left-radius:8px}
     tbody td:last-child, thead th:last-child{border-top-right-radius:8px; border-bottom-right-radius:8px}
+
     .chart{width:100%; height:360px; display:block}
     .legend{display:flex; gap:10px; flex-wrap:wrap; font-size:12px; margin-top:8px}
     .legend .item{display:flex; gap:8px; align-items:center; cursor:pointer; padding:6px 8px; border-radius:8px}
     .legend .item:hover{background:#f8fafc}
     .legend .item .sw{width:12px; height:12px; border-radius:3px; display:inline-block}
-    .legend .item.inactive{opacity:0.45}
     .legend.vertical{display:flex; flex-direction:column; gap:6px; align-items:flex-start}
-    dialog{border:none; border-radius:16px; padding:0; width:min(680px, 92vw); background:#fff; color:#111827}
+
+    /* Modal */
+    dialog{border:none; border-radius:16px; padding:0; width:min(740px, 92vw); background:#fff; color:#111827}
     .modal-head{padding:16px; border-bottom:1px solid var(--grid); display:flex; justify-content:space-between; align-items:center}
     .modal-body{padding:16px}
-    .modal-grid{display:grid; grid-template-columns:180px 1fr; gap:8px}
+    .modal-grid{display:grid; grid-template-columns:200px 1fr; gap:8px}
     .close-x{background:transparent; border:none; color:#6b7280; font-size:20px; cursor:pointer}
+
+    /* Heatmap-cards */
     .heatmap{display:grid; grid-template-columns:repeat(auto-fill, minmax(220px,1fr)); gap:10px}
     .heatcell{border:1px solid var(--grid); border-radius:10px; padding:10px; background:#fff}
     .bar{height:10px; border-radius:6px; background:linear-gradient(90deg, #e5f2ff, #1d4ed8)}
-    .banner{background:#1d4ed8; color:#fff; padding:10px 16px; border-radius:12px; text-align:center; letter-spacing:.5px; font-weight:600}
-    #tooltip{position:fixed; z-index:1000; pointer-events:none; background:#ffffff; color:#111827; border:1px solid #e5e7eb; border-radius:10px; padding:8px 10px; box-shadow:0 10px 24px rgba(0,0,0,.12); font-size:12px; line-height:1.3; transform:translate(-50%,-120%); opacity:0; transition:opacity .1s ease; white-space:nowrap}
+
+    /* Header slicers */
+    .slicer{display:flex; gap:8px; flex-wrap:wrap}
+    .slicer .grp{display:flex; gap:6px; align-items:center; padding:8px 10px; background:#fff; border:1px solid var(--grid); border-radius:12px}
+    .slicer label{font-size:12px; color:#475569}
+
+    /* Tooltip */
+    #tooltip{
+      position:fixed; z-index:1000; pointer-events:none; background:#ffffff; color:#111827;
+      border:1px solid #e5e7eb; border-radius:10px; padding:8px 10px; box-shadow:0 10px 24px rgba(0,0,0,.12);
+      font-size:12px; line-height:1.3; transform:translate(-50%,-120%); opacity:0; transition:opacity .1s ease; white-space:nowrap
+    }
     #tooltip.show{opacity:1}
     #tooltip b{font-weight:600}
+
     .row-split{display:flex; gap:16px; align-items:flex-start}
-    .row-split .side{width:240px; flex:0 0 240px}
+    .row-split .side{width:260px; flex:0 0 260px}
     .row-split .main{flex:1}
-    .hint{font-size:12px;color:#6b7280}
+
+    .banner{background:#111827; color:#fff; padding:10px 16px; border-radius:12px; text-align:center; letter-spacing:.5px; font-weight:600}
+
+    .pill{background:#eef2ff; color:#1d4ed8; padding:2px 8px; border-radius:999px; font-size:12px}
   </style>
 </head>
 <body>
+  <!-- ====== Header con slicers estilo Power BI ====== -->
   <header>
-    <div class="wrap row">
-      <h1 style="flex:1">📊 Dashboard de Empresas</h1>
-      <!-- Filtros globales simples -->
-      <select id="filter-area"><option value="">Todas las áreas</option></select>
-      <select id="filter-tipo"><option value="">Todos los tipos</option></select>
+    <div class="wrap row" style="justify-content:space-between">
+      <h1 style="margin-right:auto">📊 Dashboard de Empresas</h1>
+      <div class="slicer">
+        <div class="grp">
+          <label>Área</label>
+          <select id="filter-area"><option value="">Todas</option></select>
+        </div>
+        <div class="grp">
+          <label>Tipo</label>
+          <select id="filter-tipo"><option value="">Todos</option></select>
+        </div>
+        <div class="grp">
+          <label>Departamento</label>
+          <select id="filter-depa"><option value="">Todos</option></select>
+        </div>
+        <button id="btn-clear" class="btn ghost">Limpiar filtros</button>
+        <button id="btn-export" class="btn">Exportar CSV (filtro)</button>
+      </div>
     </div>
   </header>
 
   <main class="wrap">
-    <!-- ===== INFORMACIÓN GENERAL ===== -->
+    <!-- ====== INFORMACIÓN GENERAL ====== -->
     <section class="card">
       <div class="banner">INFORMACIÓN GENERAL DE PROYECTOS</div>
       <div style="height:12px"></div>
       <div class="grid cols-4">
-        <div class="kpi"><span class="muted">Total registros</span><b id="kpi-total">0</b></div>
-        <div class="kpi"><span class="muted">Áreas (Final)</span><b id="kpi-areas">0</b></div>
-        <div class="kpi"><span class="muted">Tipos (Final)</span><b id="kpi-tipos">0</b></div>
-        <div class="kpi"><span class="muted">Contactables (Tel / Mail)</span><b><span id="kpi-tel">0</span> / <span id="kpi-mail">0</span></b></div>
+        <div class="kpi"><small>Total registros</small><b id="kpi-total">0</b></div>
+        <div class="kpi"><small>Áreas (Final)</small><b id="kpi-areas">0</b></div>
+        <div class="kpi"><small>Tipos (Final)</small><b id="kpi-tipos">0</b></div>
+        <div class="kpi"><small>Contactables</small><b><span id="kpi-tel">0</span> <span class="muted">Tel</span> • <span id="kpi-mail">0</span> <span class="muted">Mail</span></b></div>
       </div>
 
       <div style="height:12px"></div>
 
       <div class="grid cols-2">
         <div class="card" style="padding:12px">
-          <h2 style="margin-top:0">Por tipo de proyecto (Final)</h2>
+          <h2 style="margin-top:0">Por tipo de proyecto (Final) <span class="pill" id="pill-tipo">100%</span></h2>
           <svg id="chart-gen-tipo" class="chart" viewBox="0 0 800 360"></svg>
           <div id="legend-gen-tipo" class="legend"></div>
         </div>
         <div class="card" style="padding:12px">
-          <h2 style="margin-top:0">Top departamentos</h2>
+          <h2 style="margin-top:0">Top 10 departamentos</h2>
           <svg id="chart-gen-depa" class="chart" viewBox="0 0 800 360"></svg>
           <div id="legend-gen-depa" class="legend"></div>
         </div>
       </div>
     </section>
 
-    <!-- ===== VISTAS ===== -->
+    <!-- ====== VISTAS ====== -->
     <section class="card" style="margin-top:16px">
-      <h2>Vistas</h2>
-      <div class="row" style="margin-bottom:10px">
-        <div class="tabs" role="tablist" style="flex:1">
-          <button class="tab active" data-view="v-areadpto" role="tab">Distribución por departamento</button>
-          <button class="tab" data-view="v-sector" role="tab">Distribución por sector económico</button>
-          <button class="tab" data-view="v-heatmap" role="tab">Mapa de calor (Departamentos)</button>
-          <button class="tab" data-view="v-tabla" role="tab">Tabla completa</button>
-        </div>
+      <div class="tabs" role="tablist">
+        <button class="tab active" data-view="v-areadpto" role="tab">Distribución por departamento</button>
+        <button class="tab" data-view="v-heatmap" role="tab">Mapa de calor (Departamentos)</button>
+        <button class="tab" data-view="v-tabla" role="tab">Tabla completa</button>
       </div>
 
-      <!-- Distribución por Dpto (usa área_final por defecto, se puede cambiar a tipo_final) -->
+      <!-- Por Dpto (cambia Área/Tipo) -->
       <div class="view active" id="v-areadpto">
         <div class="row-split">
           <div class="main">
             <div class="row" style="margin-bottom:10px">
-              <label class="muted">Departamento:</label>
+              <label class="muted">Departamento focal:</label>
               <select id="select-depa"></select>
               <span class="muted" style="margin-left:12px">Agrupar por:</span>
               <select id="group-by">
@@ -136,54 +178,33 @@
         </div>
       </div>
 
-      <!-- Nueva vista: Sector económico -->
-      <div class="view" id="v-sector">
-        <div class="row" style="margin-bottom:10px">
-          <span class="muted">Top sectores económicos</span>
-        </div>
-        <div class="row-split">
-          <div class="main">
-            <svg id="chart-sector-econ" class="chart" viewBox="0 0 800 360"></svg>
-          </div>
-          <div class="side">
-            <h3 style="margin:0 0 8px;font-size:14px" class="muted">Leyenda</h3>
-            <div id="legend-sector-econ" class="legend vertical"></div>
-          </div>
-        </div>
-      </div>
-
       <!-- Heatmap Departamentos -->
       <div class="view" id="v-heatmap">
         <div class="muted" style="margin-bottom:8px">Intensidad según número de registros por departamento</div>
         <div id="heatmap" class="heatmap"></div>
       </div>
 
-      <!-- Tabla completa (nueva estructura) -->
+      <!-- Tabla completa -->
       <div class="view" id="v-tabla">
         <div class="row" style="margin-bottom:10px">
-          <input id="search" placeholder="Buscar (RUC, Razón, Título, Área, Tipo…)" style="min-width:280px" />
-          <select id="filter-depa" style="margin-left:8px"><option value="">Todos los departamentos</option></select>
+          <input id="search" placeholder="Buscar (RUC, Razón, Título, Área, Tipo…)" style="min-width:300px" />
         </div>
-        <div style="overflow:auto; max-height:520px">
+        <div style="overflow:auto; max-height:540px">
           <table id="table">
             <thead>
               <tr>
-                <th>ID</th>
-                <th>RUC</th>
-                <th>Razón social</th>
-                <th>Título</th>
-                <th>Área (Final)</th>
-                <th>Tipo de proyecto</th>
+                <th>ID</th><th>RUC</th><th>Razón social</th><th>Título</th><th>Área (Final)</th><th>Tipo de proyecto</th>
               </tr>
             </thead>
             <tbody></tbody>
           </table>
         </div>
+        <div class="muted" style="margin-top:8px">Haz click en una fila para ver el detalle.</div>
       </div>
     </section>
   </main>
 
-  <!-- ===== MODAL ===== -->
+  <!-- ===== Modal ===== -->
   <dialog id="modal">
     <div class="modal-head">
       <div>
@@ -204,124 +225,87 @@
     </div>
   </dialog>
 
+  <!-- Tooltip -->
   <div id="tooltip"></div>
+
+  <!-- CSV embebido (opcional) -->
   <script id="csv-data" type="text/plain"></script>
 
   <script>
-  // -------- Helpers & Tooltip --------
-  const $=(s,e=document)=>e.querySelector(s), $$=(s,e=document)=>[...e.querySelectorAll(s)], fmt=n=>new Intl.NumberFormat('es-PE').format(n);
-  const tip = $('#tooltip');
+  // ========== Helpers ==========
+  const $=(s,e=document)=>e.querySelector(s), $$=(s,e=document)=>[...e.querySelectorAll(s)];
+  const fmt=n=>new Intl.NumberFormat('es-PE').format(n);
+  const tip=$('#tooltip');
   function showTip(x,y, html){
-    tip.innerHTML = html;
-    const pad = 14; let tx = x + 16, ty = y - 10;
-    const r = tip.getBoundingClientRect();
-    if(tx + r.width + pad > innerWidth) tx = innerWidth - r.width - pad;
-    if(ty + r.height + pad > innerHeight) ty = innerHeight - r.height - pad;
-    if(ty < pad) ty = pad;
-    tip.style.left = tx + 'px'; tip.style.top  = ty + 'px';
-    tip.classList.add('show');
+    tip.innerHTML=html; const pad=14; let tx=x+16, ty=y-10;
+    const r=tip.getBoundingClientRect();
+    if(tx+r.width+pad>innerWidth) tx=innerWidth-r.width-pad;
+    if(ty+r.height+pad>innerHeight) ty=innerHeight-r.height-pad;
+    if(ty<pad) ty=pad;
+    tip.style.left=tx+'px'; tip.style.top=ty+'px'; tip.classList.add('show');
   }
   function hideTip(){ tip.classList.remove('show'); }
 
-  // -------- CSV Parser --------
   function parseCSV(t,d=';'){
     const rows=[]; let cur='', row=[], inQ=false;
     for(let i=0;i<t.length;i++){
       const c=t[i], n=t[i+1];
       if(c==='"'){ if(inQ && n==='"'){ cur+='"'; i++; } else inQ=!inQ; }
-      else if((c==='\n' || c==='\r') && !inQ){ if(!(cur==='' && row.length===0)) { row.push(cur); rows.push(row); } row=[]; cur=''; }
+      else if((c==='\n'||c==='\r') && !inQ){ if(!(cur===''&&row.length===0)){ row.push(cur); rows.push(row);} row=[]; cur=''; }
       else if(c===d && !inQ){ row.push(cur); cur=''; }
       else cur+=c;
     }
     if(cur.length||row.length){ row.push(cur); rows.push(row); }
-    const headers = (rows.shift()||[]).map(h=>h.trim());
+    const headers=(rows.shift()||[]).map(h=>h.trim());
     return rows.filter(r=>r.some(v=>v&&v.trim())).map(r=>{ const o={}; headers.forEach((h,i)=>o[h]=(r[i]||'').trim()); return o; });
   }
-
-  // -------- Utils --------
   const uniq = a => [...new Set(a.filter(Boolean))];
   const pickColor = i => ['#2563eb','#16a34a','#f59e0b','#dc2626','#7e22ce','#db2777','#0891b2','#65a30d','#ea580c','#0ea5e9','#10b981','#a855f7'][i%12];
+  const groupCount=(rows,key)=>{ const m=new Map(); rows.forEach(d=>{ const k=(d[key]||'—').toUpperCase(); m.set(k,(m.get(k)||0)+1);}); return [...m.entries()].sort((a,b)=>b[1]-a[1]); };
 
-  function groupCount(rows, key){
-    const m = new Map();
-    rows.forEach(d=>{
-      const k=(d[key]||'—').toUpperCase();
-      m.set(k, (m.get(k)||0) + 1);
-    });
-    return [...m.entries()].sort((a,b)=>b[1]-a[1]);
-  }
-
-  // -------- Charts --------
+  // ========== Charts ==========
   function renderBarClassic(svg, pairs, {maxBars=10, tooltipFmt=null}={}){
-    const W=800,H=360; svg.innerHTML='';
-    const padTop=20, padBottom=30, padLeft=150, padRight=40, gap=8;
-    const data=pairs.slice(0,maxBars);
-    const maxV=Math.max(1, ...data.map(d=>d[1]));
+    const W=800,H=360; svg.innerHTML=''; const padTop=20, padBottom=30, padLeft=150, padRight=40, gap=8;
+    const data=pairs.slice(0,maxBars); const maxV=Math.max(1,...data.map(d=>d[1]));
     const barH=(H-padTop-padBottom-gap*(data.length-1))/Math.max(1,data.length);
 
-    // labels eje Y
-    data.forEach(([label],i)=>{
-      const y=padTop+i*(barH+gap)+barH/2+4;
+    data.forEach(([label],i)=>{ const y=padTop+i*(barH+gap)+barH/2+4;
       const t=document.createElementNS('http://www.w3.org/2000/svg','text');
-      t.setAttribute('x',padLeft-8); t.setAttribute('y',y);
-      t.setAttribute('text-anchor','end'); t.textContent=label; svg.appendChild(t);
+      t.setAttribute('x',padLeft-8); t.setAttribute('y',y); t.setAttribute('text-anchor','end'); t.textContent=label; svg.appendChild(t);
     });
 
-    // barras
-    data.forEach(([label,val],i)=>{
-      const y=padTop+i*(barH+gap), x=padLeft;
-      const w=(W-padLeft-padRight)*(val/maxV), color=pickColor(i);
+    data.forEach(([label,val],i)=>{ const y=padTop+i*(barH+gap), x=padLeft; const w=(W-padLeft-padRight)*(val/Math.max(1,maxV)); const color=pickColor(i);
       const rect=document.createElementNS('http://www.w3.org/2000/svg','rect');
-      rect.setAttribute('x',x); rect.setAttribute('y',y); rect.setAttribute('width',w); rect.setAttribute('height',barH);
-      rect.setAttribute('rx',6); rect.setAttribute('fill',color);
-      rect.addEventListener('mousemove', e=>{
-        const html = tooltipFmt ? tooltipFmt(label, val) : `<b>${label}</b>: ${fmt(val)}`;
-        showTip(e.clientX,e.clientY, html);
-      });
-      rect.addEventListener('mouseleave', hideTip);
-      svg.appendChild(rect);
-
-      const t=document.createElementNS('http://www.w3.org/2000/svg','text');
-      t.setAttribute('x',x+w+4); t.setAttribute('y',y+barH/2+4);
-      t.textContent=fmt(val); svg.appendChild(t);
+      rect.setAttribute('x',x); rect.setAttribute('y',y); rect.setAttribute('width',w); rect.setAttribute('height',barH); rect.setAttribute('rx',6); rect.setAttribute('fill',color);
+      rect.addEventListener('mousemove', e=>{ const html=tooltipFmt ? tooltipFmt(label,val) : `<b>${label}</b>: ${fmt(val)}`; showTip(e.clientX,e.clientY, html); });
+      rect.addEventListener('mouseleave', hideTip); svg.appendChild(rect);
+      const t=document.createElementNS('http://www.w3.org/2000/svg','text'); t.setAttribute('x',x+w+4); t.setAttribute('y',y+barH/2+4); t.textContent=fmt(val); svg.appendChild(t);
     });
   }
 
   function renderDonut(svg, pairs){
     const W=800,H=360,cx=W/2,cy=H/2,R=120,r=70; svg.innerHTML='';
-    const total=Math.max(1, pairs.reduce((a,[,v])=>a+v,0));
-    let ang0=-Math.PI/2;
+    const total=Math.max(1,pairs.reduce((a,[,v])=>a+v,0)); let ang0=-Math.PI/2;
 
-    if(pairs.length===1){
-      const [label,val]=pairs[0]; const color=pickColor(0);
+    if(pairs.length===1){ const [label,val]=pairs[0]; const color=pickColor(0);
       const ring=document.createElementNS('http://www.w3.org/2000/svg','circle');
       ring.setAttribute('cx',cx); ring.setAttribute('cy',cy); ring.setAttribute('r',(R+r)/2);
-      ring.setAttribute('fill','none'); ring.setAttribute('stroke',color);
-      ring.setAttribute('stroke-width', String(R-r));
+      ring.setAttribute('fill','none'); ring.setAttribute('stroke',color); ring.setAttribute('stroke-width', String(R-r));
       ring.addEventListener('mousemove', e=>showTip(e.clientX,e.clientY, `<b>${label}</b>: ${fmt(val)} registros`));
-      ring.addEventListener('mouseleave', hideTip);
-      svg.appendChild(ring); return;
+      ring.addEventListener('mouseleave', hideTip); svg.appendChild(ring); return;
     }
 
-    pairs.forEach(([label,val],i)=>{
-      const frac=val/total, ang1=ang0+frac*2*Math.PI, color=pickColor(i);
-      const x0=cx+R*Math.cos(ang0), y0=cy+R*Math.sin(ang0), x1=cx+R*Math.cos(ang1), y1=cy+R*Math.sin(ang1);
-      const large=(ang1-ang0)>Math.PI?1:0;
+    pairs.forEach(([label,val],i)=>{ const frac=val/total, ang1=ang0+frac*2*Math.PI, color=pickColor(i);
+      const x0=cx+R*Math.cos(ang0), y0=cy+R*Math.sin(ang0), x1=cx+R*Math.cos(ang1), y1=cy+R*Math.sin(ang1); const large=(ang1-ang0)>Math.PI?1:0;
       const path=document.createElementNS('http://www.w3.org/2000/svg','path');
       path.setAttribute('d',`M ${x0} ${y0} A ${R} ${R} 0 ${large} 1 ${x1} ${y1} L ${cx+r*Math.cos(ang1)} ${cy+r*Math.sin(ang1)} A ${r} ${r} 0 ${large} 0 ${cx+r*Math.cos(ang0)} ${cy+r*Math.sin(ang0)} Z`);
       path.setAttribute('fill',color);
-      path.addEventListener('mousemove', e=>{
-        const pct = (val/total*100).toFixed(1);
-        showTip(e.clientX,e.clientY, `<b>${label}</b><br>Proyectos: ${fmt(val)} (${pct}%)`);
-      });
-      path.addEventListener('mouseleave', hideTip);
-      svg.appendChild(path); ang0=ang1;
+      path.addEventListener('mousemove', e=>{ const pct=(val/total*100).toFixed(1); showTip(e.clientX,e.clientY, `<b>${label}</b><br>Proyectos: ${fmt(val)} (${pct}%)`); });
+      path.addEventListener('mouseleave', hideTip); svg.appendChild(path); ang0=ang1;
     });
   }
 
-  function renderLegend(el, pairs){
-    el.innerHTML = pairs.map(([k,v],i)=>`<div class="item"><span class="sw" style="background:${pickColor(i)}"></span><span style="min-width:160px;display:inline-block">${k}</span><b>${fmt(v)}</b></div>`).join('');
-  }
+  function renderLegend(el, pairs){ el.innerHTML = pairs.map(([k,v],i)=>`<div class="item"><span class="sw" style="background:${pickColor(i)}"></span><span style="min-width:180px;display:inline-block">${k}</span><b>${fmt(v)}</b></div>`).join(''); }
 
   function renderHeatmap(el, counts){
     el.innerHTML=''; if(!counts.length){ el.textContent='Sin datos'; return; }
@@ -338,9 +322,8 @@
     });
   }
 
-  // -------- DATA + UI --------
+  // ========== Data & UI ==========
   let RAW=[], VIEW=[];
-
   function normalizeKeys(o){
     const keys=['id_empresas','razon_social','ruc','titulo','estado','direccion','departamento','provincia','distrito','actividad_economica','sector_economico','telefono','correo','area_final','tipo_final','areas_detectadas','tipos_detectados'];
     const out={}; keys.forEach(k=> out[k]= o[k] ?? o[k?.toUpperCase?.()] ?? o[k?.toLowerCase?.()] ?? ''); return out;
@@ -349,18 +332,15 @@
   function loadData(rows){
     RAW = rows.map(normalizeKeys); VIEW=[...RAW];
 
-    // Filtros globales (Final)
     const areas = [''].concat(uniq(RAW.map(d=>(d.area_final||'').toUpperCase())).sort());
-    $('#filter-area').innerHTML = areas.map(v=>`<option value="${v}">${v||'Todas las áreas'}</option>`).join('');
+    $('#filter-area').innerHTML = areas.map(v=>`<option value="${v}">${v||'Todas'}</option>`).join('');
 
     const tipos = [''].concat(uniq(RAW.map(d=>(d.tipo_final||'').toUpperCase())).sort());
-    $('#filter-tipo').innerHTML = tipos.map(v=>`<option value="${v}">${v||'Todos los tipos'}</option>`).join('');
+    $('#filter-tipo').innerHTML = tipos.map(v=>`<option value="${v}">${v||'Todos'}</option>`).join('');
 
-    const deps = uniq(RAW.map(d=>(d.departamento||'').toUpperCase())).sort();
-    $('#select-depa').innerHTML = [''].concat(deps).map(v=>`<option value="${v}">${v||'Todos los departamentos'}</option>`).join('');
-    if($('#filter-depa')){
-      $('#filter-depa').innerHTML = [''].concat(deps).map(v=>`<option value="${v}">${v||'Todos los departamentos'}</option>`).join('');
-    }
+    const deps = [''].concat(uniq(RAW.map(d=>(d.departamento||'').toUpperCase())).sort());
+    $('#filter-depa').innerHTML = deps.map(v=>`<option value="${v}">${v||'Todos'}</option>`).join('');
+    $('#select-depa').innerHTML = deps.map(v=>`<option value="${v}">${v||'Todos'}</option>`).join('');
 
     refreshAll();
   }
@@ -368,24 +348,27 @@
   function applyFilters(){
     const fa = $('#filter-area').value;
     const ft = $('#filter-tipo').value;
-    const fd = ($('#filter-depa') ? $('#filter-depa').value : '');
+    const fd = $('#filter-depa').value;
     VIEW = RAW.filter(d=>{
-      const okA = !fa || (d.area_final||'').toUpperCase() === fa;
-      const okT = !ft || (d.tipo_final||'').toUpperCase() === ft;
-      const okD = !fd || (d.departamento||'').toUpperCase() === fd;
+      const okA = !fa || (d.area_final||'').toUpperCase()===fa;
+      const okT = !ft || (d.tipo_final||'').toUpperCase()===ft;
+      const okD = !fd || (d.departamento||'').toUpperCase()===fd;
       return okA && okT && okD;
     });
   }
 
   function updateKpis(){
-    $('#kpi-total').textContent   = fmt(VIEW.length);
-    $('#kpi-areas').textContent   = fmt(uniq(VIEW.map(d=>(d.area_final||'').toUpperCase())).length);
-    $('#kpi-tipos').textContent   = fmt(uniq(VIEW.map(d=>(d.tipo_final||'').toUpperCase())).length);
-    $('#kpi-tel').textContent     = fmt(VIEW.filter(d=> (d.telefono||'').trim()).length);
-    $('#kpi-mail').textContent    = fmt(VIEW.filter(d=> (d.correo||'').trim()).length);
+    $('#kpi-total').textContent = fmt(VIEW.length);
+    $('#kpi-areas').textContent = fmt(uniq(VIEW.map(d=>(d.area_final||'').toUpperCase())).length);
+    $('#kpi-tipos').textContent = fmt(uniq(VIEW.map(d=>(d.tipo_final||'').toUpperCase())).length);
+    $('#kpi-tel').textContent   = fmt(VIEW.filter(d=> (d.telefono||'').trim()).length);
+    $('#kpi-mail').textContent  = fmt(VIEW.filter(d=> (d.correo||'').trim()).length);
+    // badge % principal en donut
+    const total = Math.max(1, VIEW.length);
+    const top = groupCount(VIEW,'tipo_final')[0]; const pct = top ? (top[1]/total*100).toFixed(1) : 0;
+    $('#pill-tipo').textContent = `${pct}% top`;
   }
 
-  // General (arriba)
   function renderGeneral(){
     const tipoPairs = groupCount(VIEW,'tipo_final');
     renderDonut($('#chart-gen-tipo'), tipoPairs);
@@ -396,53 +379,23 @@
     renderLegend($('#legend-gen-depa'), depa);
   }
 
-  // Sector Económico (nuevo)
-  function renderSectorEconomico(){
-    const pairs = groupCount(VIEW,'sector_economico').slice(0,10);
-    // mapa auxiliar: sector -> set de departamentos
-    const depMap = new Map();
-    VIEW.forEach(d=>{
-      const s=(d.sector_economico||'—').toUpperCase();
-      const dep=(d.departamento||'—').toUpperCase();
-      if(!depMap.has(s)) depMap.set(s, new Set());
-      if(dep.trim()) depMap.get(s).add(dep);
-    });
-    const tooltipFmt = (sector, val)=>{
-      const nDeps = depMap.get(sector)?.size || 0;
-      return `<b>Sector:</b> ${sector}<br><b>Empresas:</b> ${fmt(val)}<br><b>Departamentos presentes:</b> ${fmt(nDeps)}`;
-    };
-    renderBarClassic($('#chart-sector-econ'), pairs, {maxBars:10, tooltipFmt});
-    renderLegend($('#legend-sector-econ'), pairs);
-  }
-
   function renderTable(){
     const tb = $('#table tbody'); if(!tb) return; tb.innerHTML='';
     const q = ($('#search')?.value || '').trim().toLowerCase();
-
     const data = !q ? VIEW : VIEW.filter(d=>{
       return ['ruc','razon_social','titulo','area_final','tipo_final','departamento','provincia','distrito']
         .some(k => (d[k]||'').toString().toLowerCase().includes(q));
     });
-
     data.forEach(d=>{
       const tr=document.createElement('tr');
-      tr.innerHTML = `
-        <td>${d.id_empresas||''}</td>
-        <td>${d.ruc||''}</td>
-        <td>${d.razon_social||''}</td>
-        <td>${d.titulo||''}</td>
-        <td>${d.area_final||''}</td>
-        <td>${d.tipo_final||''}</td>`;
-      tr.addEventListener('click',()=>openModal(d));
-      tb.appendChild(tr);
+      tr.innerHTML = `<td>${d.id_empresas||''}</td><td>${d.ruc||''}</td><td>${d.razon_social||''}</td><td>${d.titulo||''}</td><td>${d.area_final||''}</td><td>${d.tipo_final||''}</td>`;
+      tr.addEventListener('click',()=>openModal(d)); tb.appendChild(tr);
     });
   }
 
   function renderViews(){
     renderGeneral();
-    renderSectorEconomico();
-    const depaCounts = groupCount(VIEW,'departamento');
-    renderHeatmap($('#heatmap'), depaCounts);
+    const depaCounts = groupCount(VIEW,'departamento'); renderHeatmap($('#heatmap'), depaCounts);
 
     const selDep = $('#select-depa').value || '';
     const grpKey = $('#group-by').value || 'area_final';
@@ -457,48 +410,51 @@
   function refreshAll(){ applyFilters(); updateKpis(); renderViews(); }
 
   function openModal(d){
-    const dep = (d.departamento||'').toString().trim();
-    const pro = (d.provincia||'').toString().trim();
-    const dis = (d.distrito||'').toString().trim();
-    const lugar = [dep, pro, dis].filter(Boolean).join(' / ') || '—';
-    $('#m-ruc').textContent   = d.ruc || '—';
-    $('#m-razon').textContent = d.razon_social || '—';
-    $('#m-lugar').textContent = lugar;
-    $('#m-actividad').textContent = d.actividad_economica || '—';
-    $('#m-mail').textContent  = d.correo || '—';
-    $('#m-tel').textContent   = d.telefono || '—';
-    $('#m-areas-det').textContent = d.areas_detectadas || '—';
-    $('#m-tipos-det').textContent = d.tipos_detectados || '—';
+    const dep=(d.departamento||'').toString().trim(), pro=(d.provincia||'').toString().trim(), dis=(d.distrito||'').toString().trim();
+    const lugar=[dep,pro,dis].filter(Boolean).join(' / ') || '—';
+    $('#m-ruc').textContent=d.ruc||'—'; $('#m-razon').textContent=d.razon_social||'—';
+    $('#m-lugar').textContent=lugar; $('#m-actividad').textContent=d.actividad_economica||'—';
+    $('#m-mail').textContent=d.correo||'—'; $('#m-tel').textContent=d.telefono||'—';
+    $('#m-areas-det').textContent=d.areas_detectadas||'—'; $('#m-tipos-det').textContent=d.tipos_detectados||'—';
     document.getElementById('modal').showModal();
   }
 
-  // -------- Eventos --------
+  // ===== Export CSV (filtro) =====
+  function exportCSV(){
+    const headers = ['id_empresas','ruc','razon_social','titulo','area_final','tipo_final','departamento','provincia','distrito','actividad_economica','sector_economico','telefono','correo','areas_detectadas','tipos_detectados'];
+    const sep=';';
+    const rows=[headers.join(sep)]
+      .concat(VIEW.map(d=>headers.map(h=> (d[h]||'').replace(/;/g,',')).join(sep)));
+    const blob=new Blob([rows.join('\n')],{type:'text/csv;charset=utf-8;'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='export_filtrado.csv'; a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  // ===== Eventos =====
   document.addEventListener('input', e=>{ if(e.target && (e.target.id==='search')) renderTable(); });
-  $('#filter-area').addEventListener('change', refreshAll);
-  $('#filter-tipo').addEventListener('change', refreshAll);
-  if($('#filter-depa')) $('#filter-depa').addEventListener('change', refreshAll);
-  $$('.tab').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      $$('.tab').forEach(b=>b.classList.remove('active')); btn.classList.add('active');
-      $$('.view').forEach(v=>v.classList.remove('active')); document.getElementById(btn.dataset.view).classList.add('active');
-    });
-  });
+  $$('.tab').forEach(btn=>{ btn.addEventListener('click', ()=>{ $$('.tab').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); $$('.view').forEach(v=>v.classList.remove('active')); document.getElementById(btn.dataset.view).classList.add('active'); }); });
   $('#select-depa').addEventListener('change', renderViews);
   $('#group-by').addEventListener('change', renderViews);
 
-  // -------- Carga CSV (sin tocar ruta) --------
+  $('#filter-area').addEventListener('change', refreshAll);
+  $('#filter-tipo').addEventListener('change', refreshAll);
+  $('#filter-depa').addEventListener('change', refreshAll);
+  $('#btn-clear').addEventListener('click', ()=>{ $('#filter-area').value=''; $('#filter-tipo').value=''; $('#filter-depa').value=''; $('#select-depa').value=''; refreshAll(); });
+  $('#btn-export').addEventListener('click', exportCSV);
+
+  // ===== Carga CSV =====
   async function loadPreferExternal(){
-    const FILE_NAME = 'data_final.csv';
+    const FILE_NAME='data_final.csv';
     try{
-      const res = await fetch(FILE_NAME, {cache:'no-store'});
+      const res=await fetch(FILE_NAME,{cache:'no-store'});
       if(!res.ok) throw new Error('No encontrado');
-      const txt = await res.text();
-      loadData(parseCSV(txt, ';'));
+      const txt=await res.text();
+      loadData(parseCSV(txt,';'));
       console.info('CSV externo cargado:', FILE_NAME);
     }catch(e){
       console.warn('No se pudo leer', FILE_NAME, '-> uso CSV embebido');
-      const fallback = document.getElementById('csv-data').textContent.trim();
-      if(fallback){ loadData(parseCSV(fallback, ';')); }
+      const fallback=document.getElementById('csv-data').textContent.trim();
+      if(fallback){ loadData(parseCSV(fallback,';')); }
       else{ alert('No se encontró '+FILE_NAME+' ni CSV embebido.'); }
     }
   }
