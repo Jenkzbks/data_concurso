@@ -55,13 +55,7 @@
     .heatcell{border:1px solid var(--grid); border-radius:10px; padding:10px; background:#fff}
     .bar{height:10px; border-radius:6px; background:linear-gradient(90deg, #e5f2ff, #1d4ed8)}
     .banner{background:#1d4ed8; color:#fff; padding:10px 16px; border-radius:12px; text-align:center; letter-spacing:.5px; font-weight:600}
-    #tooltip{
-      position:fixed; z-index:1000; pointer-events:none;
-      background:#ffffff; color:#111827; border:1px solid #e5e7eb;
-      border-radius:10px; padding:8px 10px; box-shadow:0 10px 24px rgba(0,0,0,.12);
-      font-size:12px; line-height:1.3; transform:translate(-50%,-120%);
-      opacity:0; transition:opacity .1s ease; white-space:nowrap;
-    }
+    #tooltip{position:fixed; z-index:1000; pointer-events:none; background:#ffffff; color:#111827; border:1px solid #e5e7eb; border-radius:10px; padding:8px 10px; box-shadow:0 10px 24px rgba(0,0,0,.12); font-size:12px; line-height:1.3; transform:translate(-50%,-120%); opacity:0; transition:opacity .1s ease; white-space:nowrap}
     #tooltip.show{opacity:1}
     #tooltip b{font-weight:600}
     .row-split{display:flex; gap:16px; align-items:flex-start}
@@ -73,12 +67,14 @@
   <header>
     <div class="wrap row">
       <h1 style="flex:1">📊 Dashboard de Empresas</h1>
+      <!-- filtros globales con nuevas columnas -->
       <select id="filter-area"><option value="">Todas las áreas</option></select>
       <select id="filter-tiponuevo"><option value="">Todos los tipos</option></select>
     </div>
   </header>
 
   <main class="wrap">
+    <!-- ===== INFO GENERAL ===== -->
     <section class="card">
       <div class="banner">INFORMACIÓN GENERAL DE PROYECTOS</div>
       <div style="height:12px"></div>
@@ -105,6 +101,7 @@
       </div>
     </section>
 
+    <!-- ===== VISTAS ===== -->
     <section class="card" style="margin-top:16px">
       <h2>Vistas</h2>
       <div class="row" style="margin-bottom:10px">
@@ -124,8 +121,8 @@
               <select id="select-depa"></select>
               <span class="muted" style="margin-left:12px">Agrupar por:</span>
               <select id="group-by">
-                <option value="por_area">Área</option>
-                <option value="por_tipo_proyecto">Tipo</option>
+                <option value="area_final">Área</option>
+                <option value="tipo_final">Tipo</option>
               </select>
             </div>
             <svg id="chart-group-dpto" class="chart" viewBox="0 0 800 360"></svg>
@@ -163,6 +160,7 @@
     </section>
   </main>
 
+  <!-- ===== MODAL ===== -->
   <dialog id="modal">
     <div class="modal-head">
       <div>
@@ -180,6 +178,12 @@
         <div class="muted">Actividad económica</div><div id="m-actividad"></div>
         <div class="muted">Correo</div><div id="m-mail"></div>
         <div class="muted">Teléfono</div><div id="m-tel"></div>
+
+        <!-- Trazabilidad (si existen las columnas) -->
+        <div class="muted">Áreas detectadas</div><div id="m-areas-det"></div>
+        <div class="muted">Tipos detectados</div><div id="m-tipos-det"></div>
+        <div class="muted">Origen (Área / Tipo)</div><div id="m-origen"></div>
+        <div class="muted">Motivo (Área / Tipo)</div><div id="m-motivo"></div>
       </div>
     </div>
   </dialog>
@@ -231,14 +235,12 @@
     const data=pairs.slice(0,maxBars);
     const maxV=Math.max(1, ...data.map(d=>d[1]));
     const barH=(H-padTop-padBottom-gap*(data.length-1))/Math.max(1,data.length);
-
     data.forEach(([label],i)=>{
       const y=padTop+i*(barH+gap)+barH/2+4;
       const t=document.createElementNS('http://www.w3.org/2000/svg','text');
       t.setAttribute('x',padLeft-8); t.setAttribute('y',y);
       t.setAttribute('text-anchor','end'); t.textContent=label; svg.appendChild(t);
     });
-
     data.forEach(([label,val],i)=>{
       const y=padTop+i*(barH+gap), x=padLeft;
       const w=(W-padLeft-padRight)*(val/maxV), color=pickColor(i);
@@ -251,7 +253,6 @@
       rect.addEventListener('mousemove', e=>showTip(e.clientX,e.clientY, `<b>${label}</b>: ${fmt(val)}`));
       rect.addEventListener('mouseleave', hideTip);
       svg.appendChild(rect);
-
       const t=document.createElementNS('http://www.w3.org/2000/svg','text');
       t.setAttribute('x',x+w+4); t.setAttribute('y',y+barH/2+4);
       t.textContent=fmt(val); svg.appendChild(t);
@@ -262,7 +263,6 @@
     const W=800,H=360,cx=W/2,cy=H/2,R=120,r=70; svg.innerHTML='';
     const total=Math.max(1,pairs.reduce((a,[,v])=>a+v,0));
     let ang0=-Math.PI/2;
-
     if(pairs.length===1){
       const [label,val]=pairs[0]; const color=pickColor(0);
       const ring=document.createElementNS('http://www.w3.org/2000/svg','circle');
@@ -275,12 +275,10 @@
       ring.addEventListener('mouseleave', hideTip);
       svg.appendChild(ring); return;
     }
-
     pairs.forEach(([label,val],i)=>{
       const frac=val/total, ang1=ang0+frac*2*Math.PI, color=pickColor(i);
       const x0=cx+R*Math.cos(ang0), y0=cy+R*Math.sin(ang0), x1=cx+R*Math.cos(ang1), y1=cy+R*Math.sin(ang1);
       const large=(ang1-ang0)>Math.PI?1:0;
-
       const path=document.createElementNS('http://www.w3.org/2000/svg','path');
       path.setAttribute('d',`M ${x0} ${y0} A ${R} ${R} 0 ${large} 1 ${x1} ${y1} L ${cx+r*Math.cos(ang1)} ${cy+r*Math.sin(ang1)} A ${r} ${r} 0 ${large} 0 ${cx+r*Math.cos(ang0)} ${cy+r*Math.sin(ang0)} Z`);
       path.setAttribute('fill',color);
@@ -346,17 +344,19 @@
 
   let RAW=[], VIEW=[];
   function normalizeKeys(o){
-    const keys=['id_empresas','razon_social','ruc','titulo','estado','direccion','departamento','provincia','distrito','actividad_economica','sector_economico','telefono','correo','por_area','por_tipo_proyecto'];
+    // Incluimos nuevas columnas para clasificación y trazabilidad, sin tocar rutas/lectura
+    const keys=['id_empresas','razon_social','ruc','titulo','estado','direccion','departamento','provincia','distrito','actividad_economica','sector_economico','telefono','correo','area_final','tipo_final','origen_area','origen_tipo','motivo_inferencia_area','motivo_inferencia_tipo','areas_detectadas','tipos_detectados'];
     const out={}; keys.forEach(k=> out[k]= o[k] ?? o[k?.toUpperCase?.()] ?? o[k?.toLowerCase?.()] ?? ''); return out;
   }
 
   function loadData(rows){
     RAW = rows.map(normalizeKeys); VIEW=[...RAW];
 
-    const areas = [''].concat(uniq(RAW.map(d=>(d.por_area||'').toUpperCase())).sort());
+    // filtros globales con nuevas columnas
+    const areas = [''].concat(uniq(RAW.map(d=>(d.area_final||'').toUpperCase())).sort());
     $('#filter-area').innerHTML = areas.map(v=>`<option value="${v}">${v||'Todas las áreas'}</option>`).join('');
 
-    const tipos = [''].concat(uniq(RAW.map(d=>(d.por_tipo_proyecto||'').toUpperCase())).sort());
+    const tipos = [''].concat(uniq(RAW.map(d=>(d.tipo_final||'').toUpperCase())).sort());
     $('#filter-tiponuevo').innerHTML = tipos.map(v=>`<option value="${v}">${v||'Todos los tipos'}</option>`).join('');
 
     const deps = uniq(RAW.map(d=>(d.departamento||'').toUpperCase())).sort();
@@ -372,10 +372,9 @@
     const fa = $('#filter-area').value;
     const ft = $('#filter-tiponuevo').value;
     const fd = ($('#filter-depa') ? $('#filter-depa').value : '');
-
     VIEW = RAW.filter(d=>{
-      const okA = !fa || (d.por_area||'').toUpperCase() === fa;
-      const okT = !ft || (d.por_tipo_proyecto||'').toUpperCase() === ft;
+      const okA = !fa || (d.area_final||'').toUpperCase() === fa;
+      const okT = !ft || (d.tipo_final||'').toUpperCase() === ft;
       const okD = !fd || (d.departamento||'').toUpperCase() === fd;
       return okA && okT && okD;
     });
@@ -383,14 +382,14 @@
 
   function updateKpis(){
     $('#kpi-total').textContent   = fmt(VIEW.length);
-    $('#kpi-areas').textContent   = fmt(uniq(VIEW.map(d=>(d.por_area||'').toUpperCase())).length);
-    $('#kpi-tipos').textContent   = fmt(uniq(VIEW.map(d=>(d.por_tipo_proyecto||'').toUpperCase())).length);
+    $('#kpi-areas').textContent   = fmt(uniq(VIEW.map(d=>(d.area_final||'').toUpperCase())).length);
+    $('#kpi-tipos').textContent   = fmt(uniq(VIEW.map(d=>(d.tipo_final||'').toUpperCase())).length);
     $('#kpi-tel').textContent     = fmt(VIEW.filter(d=> (d.telefono||'').trim()).length);
     $('#kpi-mail').textContent    = fmt(VIEW.filter(d=> (d.correo||'').trim()).length);
   }
 
   function renderGeneral(){
-    const tipoPairs = groupCount(VIEW,'por_tipo_proyecto');
+    const tipoPairs = groupCount(VIEW,'tipo_final');
     renderDonut($('#chart-gen-tipo'), tipoPairs);
     renderLegend($('#legend-gen-tipo'), tipoPairs, {chartId: 'gen-tipo', onChange: renderGeneral});
 
@@ -402,12 +401,10 @@
   function renderTable(){
     const tb = $('#table tbody'); if(!tb) return; tb.innerHTML='';
     const q = ($('#search')?.value || '').trim().toLowerCase();
-
     const data = !q ? VIEW : VIEW.filter(d=>{
-      return ['ruc','razon_social','titulo','por_area','por_tipo_proyecto','departamento','provincia','distrito']
+      return ['ruc','razon_social','titulo','area_final','tipo_final','departamento','provincia','distrito']
         .some(k => (d[k]||'').toString().toLowerCase().includes(q));
     });
-
     data.forEach(d=>{
       const tr=document.createElement('tr');
       tr.innerHTML = `
@@ -415,7 +412,7 @@
         <td>${d.ruc||''}</td>
         <td>${d.razon_social||''}</td>
         <td>${d.titulo||''}</td>
-        <td>${d.por_tipo_proyecto||''}</td>`;
+        <td>${d.tipo_final||''}</td>`;
       tr.addEventListener('click',()=>openModal(d));
       tb.appendChild(tr);
     });
@@ -428,7 +425,7 @@
     renderHeatmap($('#heatmap'), depaCounts);
 
     const selDep = $('#select-depa').value || '';
-    const grpKey = $('#group-by').value || 'por_area'; // <-- toggle Área / Tipo
+    const grpKey = $('#group-by').value || 'area_final'; // <-- Área / Tipo
     const filtered = selDep ? VIEW.filter(d=> (d.departamento||'').toUpperCase()===selDep) : VIEW;
     const pairs = groupCount(filtered, grpKey);
     renderDonut($('#chart-group-dpto'), pairs);
@@ -447,12 +444,25 @@
     $('#m-ruc').textContent   = d.ruc || '—';
     $('#m-razon').textContent = d.razon_social || '—';
     $('#m-lugar').textContent = lugar;
-    $('#m-area').textContent  = d.por_area || '—';
-    $('#m-tipo').textContent  = d.por_tipo_proyecto || '—';
+    $('#m-area').textContent  = d.area_final || '—';
+    $('#m-tipo').textContent  = d.tipo_final || '—';
     $('#m-sector').textContent = d.sector_economico || '—';
     $('#m-actividad').textContent = d.actividad_economica || '—';
     $('#m-mail').textContent  = d.correo || '—';
     $('#m-tel').textContent   = d.telefono || '—';
+
+    // Trazabilidad si existe en CSV
+    const ad = d.areas_detectadas || '';
+    const td = d.tipos_detectados || '';
+    const oa = d.origen_area || '';
+    const ot = d.origen_tipo || '';
+    const ma = d.motivo_inferencia_area || '';
+    const mt = d.motivo_inferencia_tipo || '';
+    $('#m-areas-det').textContent = ad || '—';
+    $('#m-tipos-det').textContent = td || '—';
+    $('#m-origen').textContent    = (oa||'—') + ' / ' + (ot||'—');
+    $('#m-motivo').textContent    = (ma||'—') + ' / ' + (mt||'—');
+
     document.getElementById('modal').showModal();
   }
 
@@ -469,6 +479,7 @@
   $('#select-depa').addEventListener('change', renderViews);
   $('#group-by').addEventListener('change', renderViews);
 
+  // SIN CAMBIAR RUTA: se mantiene data_final.csv
   async function loadPreferExternal(){
     const FILE_NAME = 'data_final.csv';
     try{
