@@ -30,6 +30,9 @@
     .tabs{display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap}
     .tab{padding:10px 14px; border-radius:10px; border:1px solid var(--grid); background:#fff; cursor:pointer}
     .tab.active{outline:2px solid var(--accent)}
+    .toggle{display:inline-flex; border:1px solid var(--grid); border-radius:12px; overflow:hidden}
+    .toggle button{padding:8px 12px; border:none; background:#fff; cursor:pointer}
+    .toggle button.active{background:#1d4ed8; color:#fff}
     .view{display:none}
     .view.active{display:block}
     table{width:100%; border-collapse:separate; border-spacing:0 8px}
@@ -61,13 +64,14 @@
     .row-split{display:flex; gap:16px; align-items:flex-start}
     .row-split .side{width:240px; flex:0 0 240px}
     .row-split .main{flex:1}
+    .hint{font-size:12px;color:#6b7280}
   </style>
 </head>
 <body>
   <header>
     <div class="wrap row">
       <h1 style="flex:1">📊 Dashboard de Empresas</h1>
-      <!-- filtros globales con nuevas columnas -->
+      <!-- filtros globales (Final por defecto) -->
       <select id="filter-area"><option value="">Todas las áreas</option></select>
       <select id="filter-tiponuevo"><option value="">Todos los tipos</option></select>
     </div>
@@ -80,16 +84,43 @@
       <div style="height:12px"></div>
       <div class="grid cols-4">
         <div class="kpi"><span class="muted">Total registros</span><b id="kpi-total">0</b></div>
-        <div class="kpi"><span class="muted">Áreas</span><b id="kpi-areas">0</b></div>
-        <div class="kpi"><span class="muted">Tipos de proyecto</span><b id="kpi-tipos">0</b></div>
+        <div class="kpi"><span class="muted">Áreas (Final)</span><b id="kpi-areas">0</b></div>
+        <div class="kpi"><span class="muted">Tipos (Final)</span><b id="kpi-tipos">0</b></div>
         <div class="kpi"><span class="muted">Contactables (Tel / Mail)</span><b><span id="kpi-tel">0</span> / <span id="kpi-mail">0</span></b></div>
+      </div>
+      <div class="grid cols-3" style="margin-top:12px">
+        <div class="kpi"><span class="muted">Áreas detectadas únicas</span><b id="kpi-areas-det">0</b></div>
+        <div class="kpi"><span class="muted">Tipos detectados únicos</span><b id="kpi-tipos-det">0</b></div>
+        <div class="kpi"><span class="muted">Modo</span><b><span id="kpi-modo">Final</span></b></div>
+      </div>
+
+      <div style="height:12px"></div>
+
+      <!-- Controles de Fuente y Método -->
+      <div class="row" style="gap:16px; align-items:center">
+        <div>
+          <div class="muted" style="margin-bottom:6px">Fuente de categorización</div>
+          <div class="toggle" id="toggle-source">
+            <button data-src="final" class="active">Final</button>
+            <button data-src="detectadas">Detectadas</button>
+          </div>
+        </div>
+        <div id="wrap-weight" style="display:none">
+          <div class="muted" style="margin-bottom:6px">Método de conteo (modo Detectadas)</div>
+          <div class="toggle" id="toggle-weight">
+            <button data-w="bruto" class="active">Bruto</button>
+            <button data-w="ponderado">Ponderado 1/n</button>
+          </div>
+        </div>
+        <div class="hint">Los gráficos de abajo cambian según la <b>fuente</b> y el <b>método</b>.</div>
       </div>
 
       <div style="height:12px"></div>
 
       <div class="grid cols-2">
         <div class="card" style="padding:12px">
-          <h2 style="margin-top:0">Por tipo de proyecto</h2>
+          <h2 style="margin-top:0">Distribución principal</h2>
+          <div class="hint" id="hint-main">Usando <b>TIPO_FINAL</b></div>
           <svg id="chart-gen-tipo" class="chart" viewBox="0 0 800 360"></svg>
           <div id="legend-gen-tipo" class="legend"></div>
         </div>
@@ -112,7 +143,7 @@
         </div>
       </div>
 
-      <!-- Distribución por Dpto (Agrupar por: Área / Tipo) -->
+      <!-- Distribución por Dpto -->
       <div class="view active" id="v-areadpto">
         <div class="row-split">
           <div class="main">
@@ -121,10 +152,13 @@
               <select id="select-depa"></select>
               <span class="muted" style="margin-left:12px">Agrupar por:</span>
               <select id="group-by">
-                <option value="area_final">Área</option>
-                <option value="tipo_final">Tipo</option>
+                <option value="area_final">Área (Final)</option>
+                <option value="tipo_final">Tipo (Final)</option>
+                <option value="areas_detectadas">Áreas (Detectadas)</option>
+                <option value="tipos_detectados">Tipos (Detectados)</option>
               </select>
             </div>
+            <div class="hint" id="hint-dpto">Usando <b>ÁREA_FINAL</b></div>
             <svg id="chart-group-dpto" class="chart" viewBox="0 0 800 360"></svg>
           </div>
           <div class="side">
@@ -179,11 +213,9 @@
         <div class="muted">Correo</div><div id="m-mail"></div>
         <div class="muted">Teléfono</div><div id="m-tel"></div>
 
-        <!-- Trazabilidad (si existen las columnas) -->
+        <!-- Trazabilidad si existen -->
         <div class="muted">Áreas detectadas</div><div id="m-areas-det"></div>
         <div class="muted">Tipos detectados</div><div id="m-tipos-det"></div>
-        <div class="muted">Origen (Área / Tipo)</div><div id="m-origen"></div>
-        <div class="muted">Motivo (Área / Tipo)</div><div id="m-motivo"></div>
       </div>
     </div>
   </dialog>
@@ -192,12 +224,12 @@
   <script id="csv-data" type="text/plain"></script>
 
   <script>
+  // ------------- Helpers & Tooltip -------------
   const $=(s,e=document)=>e.querySelector(s), $$=(s,e=document)=>[...e.querySelectorAll(s)], fmt=n=>new Intl.NumberFormat('es-PE').format(n);
   const tip = $('#tooltip');
   function showTip(x,y, html){
     tip.innerHTML = html;
-    const pad = 14;
-    let tx = x + 16, ty = y - 10;
+    const pad = 14; let tx = x + 16, ty = y - 10;
     const r = tip.getBoundingClientRect();
     if(tx + r.width + pad > innerWidth) tx = innerWidth - r.width - pad;
     if(ty + r.height + pad > innerHeight) ty = innerHeight - r.height - pad;
@@ -207,6 +239,7 @@
   }
   function hideTip(){ tip.classList.remove('show'); }
 
+  // ------------- CSV Parser -------------
   function parseCSV(t,d=';'){
     const rows=[]; let cur='', row=[], inQ=false;
     for(let i=0;i<t.length;i++){
@@ -221,14 +254,45 @@
     return rows.filter(r=>r.some(v=>v&&v.trim())).map(r=>{ const o={}; headers.forEach((h,i)=>o[h]=(r[i]||'').trim()); return o; });
   }
 
+  // ------------- Utils -------------
   const uniq = a => [...new Set(a.filter(Boolean))];
-  const groupCount = (data, key) => {
-    const m = new Map();
-    data.forEach(d=>{ const k=(d[key]||'—').toUpperCase(); m.set(k,(m.get(k)||0)+1); });
-    return [...m.entries()].sort((a,b)=>b[1]-a[1]);
-  };
   const pickColor = i => ['#2563eb','#16a34a','#f59e0b','#dc2626','#7e22ce','#db2777','#0891b2','#65a30d','#ea580c','#0ea5e9','#10b981','#a855f7'][i%12];
 
+  // Normalizador de listas DETECTADAS: "ERP(3), CRM(1)" -> ["ERP","CRM"]
+  function parseDetected(str){
+    if(!str) return [];
+    return str
+      .split(/[,;|]/)
+      .map(s => s.replace(/\(\d+\)/g,'').trim().toUpperCase())
+      .filter(Boolean);
+  }
+
+  // Conteo por pares [label, valor] para FINAL
+  function groupCountFinal(rows, key){
+    const m = new Map();
+    rows.forEach(d=>{
+      const k=(d[key]||'—').toUpperCase();
+      m.set(k,(m.get(k)||0)+1);
+    });
+    return [...m.entries()].sort((a,b)=>b[1]-a[1]);
+  }
+
+  // Conteo para DETECTADAS (bruto o ponderado)
+  function countDetected(rows, col, {weighted=false}={}){
+    const m = new Map();
+    for(const d of rows){
+      const arr = parseDetected(d[col]);
+      if(arr.length===0) continue;
+      const w = weighted ? 1/arr.length : 1;
+      for(const k of arr){
+        m.set(k, (m.get(k)||0) + w);
+      }
+    }
+    // ordenar por valor desc
+    return [...m.entries()].sort((a,b)=>b[1]-a[1]);
+  }
+
+  // ------------- Charts (SVG) -------------
   function renderBarClassic(svg, pairs, {maxBars=10}={}){
     const W=800,H=360; svg.innerHTML='';
     const padTop=20, padBottom=30, padLeft=150, padRight=40, gap=8;
@@ -255,14 +319,16 @@
       svg.appendChild(rect);
       const t=document.createElementNS('http://www.w3.org/2000/svg','text');
       t.setAttribute('x',x+w+4); t.setAttribute('y',y+barH/2+4);
-      t.textContent=fmt(val); svg.appendChild(t);
+      t.textContent=fmt(Math.round(val*100)/100); svg.appendChild(t);
     });
   }
 
-  function renderDonut(svg, pairs){
+  function renderDonut(svg, pairs, {source='final', method='bruto'}={}){
     const W=800,H=360,cx=W/2,cy=H/2,R=120,r=70; svg.innerHTML='';
-    const total=Math.max(1,pairs.reduce((a,[,v])=>a+v,0));
+    const total=pairs.reduce((a,[,v])=>a+v,0);
+    const pretty = v => (method==='ponderado' ? Math.round(v*100)/100 : v);
     let ang0=-Math.PI/2;
+
     if(pairs.length===1){
       const [label,val]=pairs[0]; const color=pickColor(0);
       const ring=document.createElementNS('http://www.w3.org/2000/svg','circle');
@@ -271,12 +337,14 @@
       ring.setAttribute('stroke-width', String(R-r));
       const cls = 'series-'+label.replace(/[^a-z0-9]+/gi,'-').toLowerCase();
       ring.setAttribute('data-label', label); ring.classList.add(cls);
-      ring.addEventListener('mousemove', e=>showTip(e.clientX,e.clientY, `<b>${label}</b>: ${fmt(val)} registros`));
+      ring.addEventListener('mousemove', e=>showTip(e.clientX,e.clientY, `<b>${label}</b><br>${source==='final'?'Fuente: Final':'Fuente: Detectadas ('+method+')'}<br>Proyectos: ${fmt(pretty(val))}`));
       ring.addEventListener('mouseleave', hideTip);
       svg.appendChild(ring); return;
     }
+
     pairs.forEach(([label,val],i)=>{
-      const frac=val/total, ang1=ang0+frac*2*Math.PI, color=pickColor(i);
+      const frac = total>0 ? val/total : 0;
+      const ang1=ang0+frac*2*Math.PI, color=pickColor(i);
       const x0=cx+R*Math.cos(ang0), y0=cy+R*Math.sin(ang0), x1=cx+R*Math.cos(ang1), y1=cy+R*Math.sin(ang1);
       const large=(ang1-ang0)>Math.PI?1:0;
       const path=document.createElementNS('http://www.w3.org/2000/svg','path');
@@ -284,12 +352,16 @@
       path.setAttribute('fill',color);
       const cls = 'series-'+label.replace(/[^a-z0-9]+/gi,'-').toLowerCase();
       path.setAttribute('data-label', label); path.classList.add(cls);
-      path.addEventListener('mousemove', e=>showTip(e.clientX,e.clientY, `<b>${label}</b><br>Total de empresas: ${fmt(val)}`));
+      path.addEventListener('mousemove', e=>{
+        const pct = total>0 ? (val/total*100).toFixed(1) : '0.0';
+        showTip(e.clientX,e.clientY, `<b>${label}</b><br>${source==='final'?'Fuente: Final':'Fuente: Detectadas ('+method+')'}<br>Proyectos: ${fmt(pretty(val))} (${pct}%)`);
+      });
       path.addEventListener('mouseleave', hideTip);
       svg.appendChild(path); ang0=ang1;
     });
   }
 
+  // Leyenda (simple, interactiva)
   const _legendStates = {};
   function renderLegend(el, pairs, opts={}){
     const chartId = opts.chartId || (el.id || 'legend');
@@ -302,7 +374,7 @@
       const color = pickColor(i);
       const item = document.createElement('div'); item.className='item';
       if(state.size && !state.has(key)) item.classList.add('inactive');
-      item.innerHTML = `<span class="sw" style="background:${color}"></span><span style="min-width:160px;display:inline-block">${label}</span><b>${fmt(v)}</b>`;
+      item.innerHTML = `<span class="sw" style="background:${color}"></span><span style="min-width:160px;display:inline-block">${label}</span><b>${fmt(Math.round(v*100)/100)}</b>`;
       item.addEventListener('mouseenter', ()=>{
         document.querySelectorAll('[class^="series-"]').forEach(n=>n.style.opacity='0.15');
         const cls = '.series-'+key.replace(/[^a-z0-9]+/gi,'-').toLowerCase();
@@ -316,7 +388,7 @@
         Array.from(el.children).forEach(ch=>ch.classList.remove('inactive'));
         Array.from(el.children).forEach(ch=>{
           const txt = ch.textContent.trim();
-          const lbl = txt.replace(/\s+\d+[.,\s]*$/,'');
+          const lbl = txt.replace(/\s+[\d.,]+$/, '');
           if(state.size && !state.has(lbl)) ch.classList.add('inactive');
         });
         if(typeof opts.onChange === 'function') opts.onChange();
@@ -325,34 +397,20 @@
     });
   }
 
-  function renderHeatmap(el, counts){
-    el.innerHTML=''; if(!counts.length){ el.textContent='Sin datos'; return; }
-    const maxV = Math.max(...counts.map(c=>c[1]));
-    counts.forEach(([dep,val])=>{
-      const cell = document.createElement('div'); cell.className='heatcell';
-      const title = document.createElement('div'); title.innerHTML = `<b>${dep}</b> <span class="muted">(${fmt(val)})</span>`; cell.appendChild(title);
-      const barWrap = document.createElement('div'); barWrap.style.marginTop='8px'; barWrap.style.background='#eef2ff'; barWrap.style.borderRadius='6px'; barWrap.style.height='10px';
-      const bar = document.createElement('div'); bar.className='bar'; bar.style.width = `${(val/maxV)*100}%`;
-      const tipHtml = `<b>${dep}</b>: ${fmt(val)} registros`;
-      cell.addEventListener('mousemove', e=>showTip(e.clientX,e.clientY, tipHtml));
-      cell.addEventListener('mouseleave', hideTip);
-      bar.addEventListener('mousemove', e=>showTip(e.clientX,e.clientY, tipHtml));
-      bar.addEventListener('mouseleave', hideTip);
-      barWrap.appendChild(bar); cell.appendChild(barWrap); el.appendChild(cell);
-    });
-  }
-
+  // ------------- DATA + UI -------------
   let RAW=[], VIEW=[];
+  let MODE_SOURCE = 'final';      // 'final' | 'detectadas'
+  let MODE_WEIGHT = 'bruto';      // 'bruto' | 'ponderado'
+
   function normalizeKeys(o){
-    // Incluimos nuevas columnas para clasificación y trazabilidad, sin tocar rutas/lectura
-    const keys=['id_empresas','razon_social','ruc','titulo','estado','direccion','departamento','provincia','distrito','actividad_economica','sector_economico','telefono','correo','area_final','tipo_final','origen_area','origen_tipo','motivo_inferencia_area','motivo_inferencia_tipo','areas_detectadas','tipos_detectados'];
+    const keys=['id_empresas','razon_social','ruc','titulo','estado','direccion','departamento','provincia','distrito','actividad_economica','sector_economico','telefono','correo','area_final','tipo_final','areas_detectadas','tipos_detectados'];
     const out={}; keys.forEach(k=> out[k]= o[k] ?? o[k?.toUpperCase?.()] ?? o[k?.toLowerCase?.()] ?? ''); return out;
   }
 
   function loadData(rows){
     RAW = rows.map(normalizeKeys); VIEW=[...RAW];
 
-    // filtros globales con nuevas columnas
+    // Filtros globales (sobre FINAL)
     const areas = [''].concat(uniq(RAW.map(d=>(d.area_final||'').toUpperCase())).sort());
     $('#filter-area').innerHTML = areas.map(v=>`<option value="${v}">${v||'Todas las áreas'}</option>`).join('');
 
@@ -380,20 +438,45 @@
     });
   }
 
+  function uniqueDetected(rows, col){
+    return uniq(rows.flatMap(d => parseDetected(d[col] || '')));
+  }
+
   function updateKpis(){
     $('#kpi-total').textContent   = fmt(VIEW.length);
     $('#kpi-areas').textContent   = fmt(uniq(VIEW.map(d=>(d.area_final||'').toUpperCase())).length);
     $('#kpi-tipos').textContent   = fmt(uniq(VIEW.map(d=>(d.tipo_final||'').toUpperCase())).length);
     $('#kpi-tel').textContent     = fmt(VIEW.filter(d=> (d.telefono||'').trim()).length);
     $('#kpi-mail').textContent    = fmt(VIEW.filter(d=> (d.correo||'').trim()).length);
+    // KPIs detectadas
+    $('#kpi-areas-det').textContent = fmt(uniqueDetected(VIEW,'areas_detectadas').length);
+    $('#kpi-tipos-det').textContent = fmt(uniqueDetected(VIEW,'tipos_detectados').length);
+    // Modo
+    $('#kpi-modo').textContent = MODE_SOURCE==='final' ? 'Final' : `Detectadas (${MODE_WEIGHT})`;
+  }
+
+  function pairsFromMode(rows, main='tipo'){ // main: 'tipo'|'area'
+    if(MODE_SOURCE==='final'){
+      if(main==='tipo') return groupCountFinal(rows,'tipo_final');
+      if(main==='area') return groupCountFinal(rows,'area_final');
+    } else {
+      const weighted = (MODE_WEIGHT==='ponderado');
+      if(main==='tipo') return countDetected(rows,'tipos_detectados',{weighted});
+      if(main==='area') return countDetected(rows,'areas_detectadas',{weighted});
+    }
+    return [];
   }
 
   function renderGeneral(){
-    const tipoPairs = groupCount(VIEW,'tipo_final');
-    renderDonut($('#chart-gen-tipo'), tipoPairs);
+    // Distribución principal (usamos TIPO como default)
+    const tipoPairs = pairsFromMode(VIEW,'tipo');
+    const srcLabel = MODE_SOURCE==='final' ? 'Usando TIPO_FINAL' : `Usando TIPOS_DETECTADOS (${MODE_WEIGHT})`;
+    $('#hint-main').innerHTML = ` ${srcLabel}`;
+    renderDonut($('#chart-gen-tipo'), tipoPairs, {source: MODE_SOURCE, method: MODE_WEIGHT});
     renderLegend($('#legend-gen-tipo'), tipoPairs, {chartId: 'gen-tipo', onChange: renderGeneral});
 
-    const depa = groupCount(VIEW,'departamento').slice(0,10);
+    // Top departamentos (siempre cuenta registros por dpto)
+    const depa = groupCountFinal(VIEW,'departamento').slice(0,10);
     renderBarClassic($('#chart-gen-depa'), depa, {maxBars:10});
     renderLegend($('#legend-gen-depa'), depa, {chartId: 'gen-depa', onChange: renderGeneral});
   }
@@ -421,14 +504,33 @@
   function renderViews(){
     renderGeneral();
 
-    const depaCounts = groupCount(VIEW,'departamento');
+    const depaCounts = groupCountFinal(VIEW,'departamento');
     renderHeatmap($('#heatmap'), depaCounts);
 
+    // Distribución por Dpto con selector de agrupación
     const selDep = $('#select-depa').value || '';
-    const grpKey = $('#group-by').value || 'area_final'; // <-- Área / Tipo
+    const grpKey = $('#group-by').value || 'area_final';
+
     const filtered = selDep ? VIEW.filter(d=> (d.departamento||'').toUpperCase()===selDep) : VIEW;
-    const pairs = groupCount(filtered, grpKey);
-    renderDonut($('#chart-group-dpto'), pairs);
+
+    let pairs = [];
+    if(grpKey==='area_final'){
+      $('#hint-dpto').innerHTML = 'Usando <b>ÁREA_FINAL</b>';
+      pairs = groupCountFinal(filtered, 'area_final');
+      renderDonut($('#chart-group-dpto'), pairs, {source:'final', method:'bruto'});
+    } else if(grpKey==='tipo_final'){
+      $('#hint-dpto').innerHTML = 'Usando <b>TIPO_FINAL</b>';
+      pairs = groupCountFinal(filtered, 'tipo_final');
+      renderDonut($('#chart-group-dpto'), pairs, {source:'final', method:'bruto'});
+    } else if(grpKey==='areas_detectadas'){
+      $('#hint-dpto').innerHTML = 'Usando <b>ÁREAS_DETECTADAS</b>';
+      pairs = countDetected(filtered, 'areas_detectadas', {weighted: MODE_WEIGHT==='ponderado'});
+      renderDonut($('#chart-group-dpto'), pairs, {source:'detectadas', method: MODE_WEIGHT});
+    } else if(grpKey==='tipos_detectados'){
+      $('#hint-dpto').innerHTML = 'Usando <b>TIPOS_DETECTADOS</b>';
+      pairs = countDetected(filtered, 'tipos_detectados', {weighted: MODE_WEIGHT==='ponderado'});
+      renderDonut($('#chart-group-dpto'), pairs, {source:'detectadas', method: MODE_WEIGHT});
+    }
     renderLegend($('#legend-group-dpto'), pairs, {chartId: 'group-dpto', onChange: renderViews});
 
     renderTable();
@@ -450,22 +552,13 @@
     $('#m-actividad').textContent = d.actividad_economica || '—';
     $('#m-mail').textContent  = d.correo || '—';
     $('#m-tel').textContent   = d.telefono || '—';
-
-    // Trazabilidad si existe en CSV
-    const ad = d.areas_detectadas || '';
-    const td = d.tipos_detectados || '';
-    const oa = d.origen_area || '';
-    const ot = d.origen_tipo || '';
-    const ma = d.motivo_inferencia_area || '';
-    const mt = d.motivo_inferencia_tipo || '';
-    $('#m-areas-det').textContent = ad || '—';
-    $('#m-tipos-det').textContent = td || '—';
-    $('#m-origen').textContent    = (oa||'—') + ' / ' + (ot||'—');
-    $('#m-motivo').textContent    = (ma||'—') + ' / ' + (mt||'—');
-
+    // trazabilidad
+    $('#m-areas-det').textContent = d.areas_detectadas || '—';
+    $('#m-tipos-det').textContent = d.tipos_detectados || '—';
     document.getElementById('modal').showModal();
   }
 
+  // ------------- Eventos -------------
   document.addEventListener('input', e=>{ if(e.target && (e.target.id==='search')) renderTable(); });
   $('#filter-area').addEventListener('change', refreshAll);
   $('#filter-tiponuevo').addEventListener('change', refreshAll);
@@ -479,7 +572,29 @@
   $('#select-depa').addEventListener('change', renderViews);
   $('#group-by').addEventListener('change', renderViews);
 
-  // SIN CAMBIAR RUTA: se mantiene data_final.csv
+  // Toggle Fuente (Final / Detectadas)
+  $$('#toggle-source button').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      $$('#toggle-source button').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active');
+      MODE_SOURCE = b.dataset.src; // 'final' | 'detectadas'
+      // Mostrar/ocultar método de conteo
+      $('#wrap-weight').style.display = MODE_SOURCE==='detectadas' ? '' : 'none';
+      refreshAll();
+    });
+  });
+
+  // Toggle Método (Bruto / Ponderado)
+  $$('#toggle-weight button').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      $$('#toggle-weight button').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active');
+      MODE_WEIGHT = b.dataset.w; // 'bruto' | 'ponderado'
+      refreshAll();
+    });
+  });
+
+  // ------------- Carga CSV (sin tocar ruta) -------------
   async function loadPreferExternal(){
     const FILE_NAME = 'data_final.csv';
     try{
