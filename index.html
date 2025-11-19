@@ -4,9 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Data Concurso - Dashboard</title>
-  <!-- Para producción, usa la versión minificada: -->
-  <!-- <link rel="stylesheet" href="dashboard.min.css"> -->
-  <style id="main-css">
+  <style>
     /* ====== Look & feel “Power BI” ====== */
     :root{
       --bg:#f5f6f8; --card:#ffffff; --muted:#6b7280; --text:#101828; --accent:#1d4ed8; --grid:#e5e7eb;
@@ -106,18 +104,18 @@
       <div class="slicer">
         <div class="grp">
           <label>Área</label>
-          <select id="filter-area" aria-label="Filtrar por área" role="listbox"><option value="">Todas</option></select>
+          <select id="filter-area"><option value="">Todas</option></select>
         </div>
         <div class="grp">
           <label>Tipo</label>
-          <select id="filter-tipo" aria-label="Filtrar por tipo" role="listbox"><option value="">Todos</option></select>
+          <select id="filter-tipo"><option value="">Todos</option></select>
         </div>
         <div class="grp">
           <label>Departamento</label>
-          <select id="filter-depa" aria-label="Filtrar por departamento" role="listbox"><option value="">Todos</option></select>
+          <select id="filter-depa"><option value="">Todos</option></select>
         </div>
-        <button id="btn-clear" class="btn ghost" aria-label="Limpiar filtros" role="button">Limpiar filtros</button>
-        <button id="btn-export" class="btn" aria-label="Exportar CSV filtrado" role="button">Exportar CSV (filtro)</button>
+        <button id="btn-clear" class="btn ghost">Limpiar filtros</button>
+        <button id="btn-export" class="btn">Exportar CSV (filtro)</button>
       </div>
     </div>
   </header>
@@ -164,9 +162,9 @@
           <div class="main">
             <div class="row" style="margin-bottom:10px">
               <label class="muted">Departamento focal:</label>
-              <select id="select-depa" aria-label="Seleccionar departamento focal" role="listbox"></select>
+              <select id="select-depa"></select>
               <span class="muted" style="margin-left:12px">Agrupar por:</span>
-              <select id="group-by" aria-label="Agrupar por" role="listbox">
+              <select id="group-by">
                 <option value="area_final">Área (Final)</option>
                 <option value="tipo_final">Tipo (Final)</option>
               </select>
@@ -189,7 +187,7 @@
       <!-- Tabla completa -->
       <div class="view" id="v-tabla">
         <div class="row" style="margin-bottom:10px">
-          <input id="search" placeholder="Buscar (RUC, Razón, Título, Área, Tipo…)" style="min-width:300px" aria-label="Buscar en la tabla" role="searchbox" />
+          <input id="search" placeholder="Buscar (RUC, Razón, Título, Área, Tipo…)" style="min-width:300px" />
         </div>
         <div style="overflow:auto; max-height:540px">
           <table id="table">
@@ -233,10 +231,285 @@
   <!-- CSV embebido (opcional) -->
   <script id="csv-data" type="text/plain"></script>
 
-  <!-- Para producción, usa la versión minificada: -->
-  <!-- <script src="dashboard.min.js"></script> -->
-  <script src="dashboard.js"></script>
-  <!-- SUGERENCIA: Para producción, minifica este CSS usando https://cssminifier.com/ o similar y reemplaza el contenido aquí -->
+  <script>
+  // ========== Helpers ==========
+  const $=(s,e=document)=>e.querySelector(s), $$=(s,e=document)=>[...e.querySelectorAll(s)];
+  const fmt=n=>new Intl.NumberFormat('es-PE').format(n);
+  const tip=$('#tooltip');
+  function showTip(x,y, html){
+    tip.innerHTML=html; const pad=14; let tx=x+16, ty=y-10;
+    const r=tip.getBoundingClientRect();
+    if(tx+r.width+pad>innerWidth) tx=innerWidth-r.width-pad;
+    if(ty+r.height+pad>innerHeight) ty=innerHeight-r.height-pad;
+    if(ty<pad) ty=pad;
+    tip.style.left=tx+'px'; tip.style.top=ty+'px'; tip.classList.add('show');
+  }
+  function hideTip(){ tip.classList.remove('show'); }
+
+  function parseCSV(t,d=';'){
+    const rows=[]; let cur='', row=[], inQ=false;
+    for(let i=0;i<t.length;i++){
+      const c=t[i], n=t[i+1];
+      if(c==='"'){ if(inQ && n==='"'){ cur+='"'; i++; } else inQ=!inQ; }
+      else if((c==='\n'||c==='\r') && !inQ){ if(!(cur===''&&row.length===0)){ row.push(cur); rows.push(row);} row=[]; cur=''; }
+      else if(c===d && !inQ){ row.push(cur); cur=''; }
+      else cur+=c;
+    }
+    if(cur.length||row.length){ row.push(cur); rows.push(row); }
+    const headers=(rows.shift()||[]).map(h=>h.trim());
+    return rows.filter(r=>r.some(v=>v&&v.trim())).map(r=>{ const o={}; headers.forEach((h,i)=>o[h]=(r[i]||'').trim()); return o; });
+  }
+  const uniq = a => [...new Set(a.filter(Boolean))];
+  const pickColor = i => ['#2563eb','#16a34a','#f59e0b','#dc2626','#7e22ce','#db2777','#0891b2','#65a30d','#ea580c','#0ea5e9','#10b981','#a855f7'][i%12];
+  const groupCount=(rows,key)=>{ const m=new Map(); rows.forEach(d=>{ const k=(d[key]||'—').toUpperCase(); m.set(k,(m.get(k)||0)+1);}); return [...m.entries()].sort((a,b)=>b[1]-a[1]); };
+
+  // ========== Charts ==========
+  function renderBarClassic(svg, pairs, {maxBars=10, tooltipFmt=null}={}){
+    const W=800,H=360; svg.innerHTML=''; const padTop=20, padBottom=30, padLeft=150, padRight=40, gap=8;
+    const data=pairs.slice(0,maxBars); const maxV=Math.max(1,...data.map(d=>d[1]));
+    const barH=(H-padTop-padBottom-gap*(data.length-1))/Math.max(1,data.length);
+
+    data.forEach(([label],i)=>{ const y=padTop+i*(barH+gap)+barH/2+4;
+      const t=document.createElementNS('http://www.w3.org/2000/svg','text');
+      t.setAttribute('x',padLeft-8); t.setAttribute('y',y); t.setAttribute('text-anchor','end'); t.textContent=label; svg.appendChild(t);
+    });
+
+    data.forEach(([label,val],i)=>{ const y=padTop+i*(barH+gap), x=padLeft; const w=(W-padLeft-padRight)*(val/Math.max(1,maxV)); const color=pickColor(i);
+      const rect=document.createElementNS('http://www.w3.org/2000/svg','rect');
+      rect.setAttribute('x',x); rect.setAttribute('y',y); rect.setAttribute('width',w); rect.setAttribute('height',barH); rect.setAttribute('rx',6); rect.setAttribute('fill',color);
+      rect.addEventListener('mousemove', e=>{ const html=tooltipFmt ? tooltipFmt(label,val) : `<b>${label}</b>: ${fmt(val)}`; showTip(e.clientX,e.clientY, html); });
+      rect.addEventListener('mouseleave', hideTip); svg.appendChild(rect);
+      const t=document.createElementNS('http://www.w3.org/2000/svg','text'); t.setAttribute('x',x+w+4); t.setAttribute('y',y+barH/2+4); t.textContent=fmt(val); svg.appendChild(t);
+    });
+  }
+
+  function renderDonut(svg, pairs){
+    const W=800,H=360,cx=W/2,cy=H/2,R=120,r=70; svg.innerHTML='';
+    const total=Math.max(1,pairs.reduce((a,[,v])=>a+v,0)); let ang0=-Math.PI/2;
+
+    if(pairs.length===1){ const [label,val]=pairs[0]; const color=pickColor(0);
+      const ring=document.createElementNS('http://www.w3.org/2000/svg','circle');
+      ring.setAttribute('cx',cx); ring.setAttribute('cy',cy); ring.setAttribute('r',(R+r)/2);
+      ring.setAttribute('fill','none'); ring.setAttribute('stroke',color); ring.setAttribute('stroke-width', String(R-r));
+      ring.addEventListener('mousemove', e=>showTip(e.clientX,e.clientY, `<b>${label}</b>: ${fmt(val)} registros`));
+      ring.addEventListener('mouseleave', hideTip); svg.appendChild(ring); return;
+    }
+
+    pairs.forEach(([label,val],i)=>{ const frac=val/total, ang1=ang0+frac*2*Math.PI, color=pickColor(i);
+      const x0=cx+R*Math.cos(ang0), y0=cy+R*Math.sin(ang0), x1=cx+R*Math.cos(ang1), y1=cy+R*Math.sin(ang1); const large=(ang1-ang0)>Math.PI?1:0;
+      const path=document.createElementNS('http://www.w3.org/2000/svg','path');
+      path.setAttribute('d',`M ${x0} ${y0} A ${R} ${R} 0 ${large} 1 ${x1} ${y1} L ${cx+r*Math.cos(ang1)} ${cy+r*Math.sin(ang1)} A ${r} ${r} 0 ${large} 0 ${cx+r*Math.cos(ang0)} ${cy+r*Math.sin(ang0)} Z`);
+      path.setAttribute('fill',color);
+      path.addEventListener('mousemove', e=>{ const pct=(val/total*100).toFixed(1); showTip(e.clientX,e.clientY, `<b>${label}</b><br>Proyectos: ${fmt(val)} (${pct}%)`); });
+      path.addEventListener('mouseleave', hideTip); svg.appendChild(path); ang0=ang1;
+    });
+  }
+
+  function renderLegend(el, pairs){
+    el.innerHTML = pairs.map(([k,v],i)=>`<div class="item"><span class="sw" style="background:${pickColor(i)}"></span><span style="min-width:180px;display:inline-block">${k}</span><b>${fmt(v)}</b></div>`).join('');
+  }
+
+  function renderHeatmap(el, counts){
+    el.innerHTML=''; if(!counts.length){ el.textContent='Sin datos'; return; }
+    const maxV = Math.max(...counts.map(c=>c[1]));
+    counts.forEach(([dep,val])=>{
+      const cell = document.createElement('div'); cell.className='heatcell';
+      const title = document.createElement('div'); title.innerHTML = `<b>${dep}</b> <span class="muted">(${fmt(val)})</span>`; cell.appendChild(title);
+      const barWrap = document.createElement('div'); barWrap.style.marginTop='8px'; barWrap.style.background='#eef2ff'; barWrap.style.borderRadius='6px'; barWrap.style.height='10px';
+      const bar = document.createElement('div'); bar.className='bar'; bar.style.width = `${(val/maxV)*100}%`;
+      const tipHtml = `<b>${dep}</b>: ${fmt(val)} registros`;
+      cell.addEventListener('mousemove', e=>showTip(e.clientX,e.clientY, tipHtml)); cell.addEventListener('mouseleave', hideTip);
+      bar.addEventListener('mousemove', e=>showTip(e.clientX,e.clientY, tipHtml)); bar.addEventListener('mouseleave', hideTip);
+      barWrap.appendChild(bar); cell.appendChild(barWrap); el.appendChild(cell);
+    });
+  }
+
+  // ========== Data & UI ==========
+  let RAW=[], VIEW=[];
+  function normalizeKeys(o){
+    const keys=[
+      'id_empresas','razon_social','ruc','titulo','estado','direccion',
+      'departamento','provincia','distrito','actividad_economica','sector_economico',
+      'telefono','correo','area_final','tipo_final','areas_detectadas'
+    ];
+    const out={};
+    keys.forEach(k=> out[k]= o[k] ?? o[k?.toUpperCase?.()] ?? o[k?.toLowerCase?.()] ?? '');
+    return out;
+  }
+
+  function loadData(rows){
+    RAW = rows.map(normalizeKeys); VIEW=[...RAW];
+
+    const areas = [''].concat(uniq(RAW.map(d=>(d.area_final||'').toUpperCase())).sort());
+    $('#filter-area').innerHTML = areas.map(v=>`<option value="${v}">${v||'Todas'}</option>`).join('');
+
+    const tipos = [''].concat(uniq(RAW.map(d=>(d.tipo_final||'').toUpperCase())).sort());
+    $('#filter-tipo').innerHTML = tipos.map(v=>`<option value="${v}">${v||'Todos'}</option>`).join('');
+
+    const deps = [''].concat(uniq(RAW.map(d=>(d.departamento||'').toUpperCase())).sort());
+    $('#filter-depa').innerHTML = deps.map(v=>`<option value="${v}">${v||'Todos'}</option>`).join('');
+    $('#select-depa').innerHTML = deps.map(v=>`<option value="${v}">${v||'Todos'}</option>`).join('');
+
+    refreshAll();
+  }
+
+  function applyFilters(){
+    const fa = $('#filter-area').value;
+    const ft = $('#filter-tipo').value;
+    const fd = $('#filter-depa').value;
+    VIEW = RAW.filter(d=>{
+      const okA = !fa || (d.area_final||'').toUpperCase()===fa;
+      const okT = !ft || (d.tipo_final||'').toUpperCase()===ft;
+      const okD = !fd || (d.departamento||'').toUpperCase()===fd;
+      return okA && okT && okD;
+    });
+  }
+
+  function updateKpis(){
+    $('#kpi-total').textContent = fmt(VIEW.length);
+    $('#kpi-areas').textContent = fmt(uniq(VIEW.map(d=>(d.area_final||'').toUpperCase())).length);
+    $('#kpi-tipos').textContent = fmt(uniq(VIEW.map(d=>(d.tipo_final||'').toUpperCase())).length);
+    $('#kpi-tel').textContent   = fmt(VIEW.filter(d=> (d.telefono||'').trim()).length);
+    $('#kpi-mail').textContent  = fmt(VIEW.filter(d=> (d.correo||'').trim()).length);
+    const total = Math.max(1, VIEW.length);
+    const top = groupCount(VIEW,'tipo_final')[0];
+    const pct = top ? (top[1]/total*100).toFixed(1) : 0;
+    $('#pill-tipo').textContent = `${pct}% top`;
+  }
+
+  function renderGeneral(){
+    const tipoPairs = groupCount(VIEW,'tipo_final');
+    renderDonut($('#chart-gen-tipo'), tipoPairs);
+    renderLegend($('#legend-gen-tipo'), tipoPairs);
+
+    const depa = groupCount(VIEW,'departamento').slice(0,10);
+    renderBarClassic($('#chart-gen-depa'), depa, {maxBars:10});
+    renderLegend($('#legend-gen-depa'), depa);
+  }
+
+  function renderTable(){
+    const tb = $('#table tbody'); if(!tb) return; tb.innerHTML='';
+    const q = ($('#search')?.value || '').trim().toLowerCase();
+    const data = !q ? VIEW : VIEW.filter(d=>{
+      return ['ruc','razon_social','titulo','area_final','tipo_final','departamento','provincia','distrito']
+        .some(k => (d[k]||'').toString().toLowerCase().includes(q));
+    });
+    data.forEach(d=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML = `
+        <td>${d.id_empresas||''}</td>
+        <td>${d.ruc||''}</td>
+        <td>${d.razon_social||''}</td>
+        <td>${d.titulo||''}</td>
+        <td>${d.area_final||''}</td>
+        <td>${d.tipo_final||''}</td>
+        <td><button class="btn btn-ver" type="button" style="background:#2563eb;color:#fff;display:flex;align-items:center;gap:6px;padding:7px 14px 7px 10px;font-weight:500;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16" style="vertical-align:middle;"><path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zm-8 4.5c-3.314 0-6-3.134-6-4.5s2.686-4.5 6-4.5 6 3.134 6 4.5-2.686 4.5-6 4.5z"/><path d="M8 5.5A2.5 2.5 0 1 0 8 10a2.5 2.5 0 0 0 0-4.5zm0 1A1.5 1.5 0 1 1 8 9a1.5 1.5 0 0 1 0-3z"/></svg>
+          Ver
+        </button></td>
+      `;
+      tr.querySelector('.btn-ver').addEventListener('click', e => {
+        e.stopPropagation();
+        openModal(d);
+      });
+      tb.appendChild(tr);
+    });
+  }
+
+  function renderViews(){
+    renderGeneral();
+    const depaCounts = groupCount(VIEW,'departamento');
+    renderHeatmap($('#heatmap'), depaCounts);
+
+    const selDep = $('#select-depa').value || '';
+    const grpKey = $('#group-by').value || 'area_final';
+    const filtered = selDep ? VIEW.filter(d=> (d.departamento||'').toUpperCase()===selDep) : VIEW;
+    const pairs = groupCount(filtered, grpKey);
+    renderDonut($('#chart-group-dpto'), pairs);
+    renderLegend($('#legend-group-dpto'), pairs);
+
+    renderTable();
+  }
+
+  function refreshAll(){ applyFilters(); updateKpis(); renderViews(); }
+
+  function openModal(d){
+    const dep=(d.departamento||'').toString().trim(),
+          pro=(d.provincia||'').toString().trim(),
+          dis=(d.distrito||'').toString().trim();
+    const lugar=[dep,pro,dis].filter(Boolean).join(' / ') || '—';
+    $('#m-ruc').textContent=d.ruc||'—';
+    $('#m-razon').textContent=d.razon_social||'—';
+    $('#m-lugar').textContent=lugar;
+    $('#m-actividad').textContent=d.actividad_economica||'—';
+    $('#m-mail').textContent=d.correo||'—';
+    $('#m-tel').textContent=d.telefono||'—';
+    $('#m-areas-det').textContent=d.areas_detectadas||'—';
+    // $('#m-tipos-det').textContent=d.tipos_detectados||'—';
+    document.getElementById('modal').showModal();
+  }
+
+  // ===== Export CSV (filtro) =====
+  function exportCSV(){
+    const headers = [
+      'id_empresas','ruc','razon_social','titulo',
+      'area_final','tipo_final','departamento','provincia','distrito',
+      'actividad_economica','sector_economico','telefono','correo',
+      'areas_detectadas'
+    ];
+    const sep=';';
+    const rows=[headers.join(sep)]
+      .concat(VIEW.map(d=>headers.map(h=> (d[h]||'').replace(/;/g,',')).join(sep)));
+    const blob=new Blob([rows.join('\n')],{type:'text/csv;charset=utf-8;'});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='export_filtrado.csv';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  // ===== Eventos =====
+  document.addEventListener('input', e=>{ if(e.target && (e.target.id==='search')) renderTable(); });
+  $$('.tab').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      $$('.tab').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      $$('.view').forEach(v=>v.classList.remove('active'));
+      document.getElementById(btn.dataset.view).classList.add('active');
+    });
+  });
+  $('#select-depa').addEventListener('change', renderViews);
+  $('#group-by').addEventListener('change', renderViews);
+
+  $('#filter-area').addEventListener('change', refreshAll);
+  $('#filter-tipo').addEventListener('change', refreshAll);
+  $('#filter-depa').addEventListener('change', refreshAll);
+  $('#btn-clear').addEventListener('click', ()=>{
+    $('#filter-area').value='';
+    $('#filter-tipo').value='';
+    $('#filter-depa').value='';
+    $('#select-depa').value='';
+    refreshAll();
+  });
+  $('#btn-export').addEventListener('click', exportCSV);
+
+  // ===== Carga CSV =====
+  async function loadPreferExternal(){
+    const FILE_NAME='data_final.csv';
+    try{
+      const res=await fetch(FILE_NAME,{cache:'no-store'});
+      if(!res.ok) throw new Error('No encontrado');
+      const txt=await res.text();
+      loadData(parseCSV(txt,';'));
+      console.info('CSV externo cargado:', FILE_NAME);
+    }catch(e){
+      console.warn('No se pudo leer', FILE_NAME, '-> uso CSV embebido');
+      const fallback=document.getElementById('csv-data').textContent.trim();
+      if(fallback){ loadData(parseCSV(fallback,';')); }
+      else{ alert('No se encontró '+FILE_NAME+' ni CSV embebido.'); }
+    }
+  }
+  window.addEventListener('DOMContentLoaded', loadPreferExternal);
   </script>
 </body>
 </html>
