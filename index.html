@@ -220,7 +220,7 @@
         <div class="muted">Correo</div><div id="m-mail"></div>
         <div class="muted">Teléfono</div><div id="m-tel"></div>
         <div class="muted">Áreas detectadas</div><div id="m-areas-det"></div>
-        <div class="muted">Tipos detectados</div><div id="m-tipos-det"></div>
+        <!-- <div class="muted">Tipos detectados</div><div id="m-tipos-det"></div> -->
       </div>
     </div>
   </dialog>
@@ -330,7 +330,7 @@
     const keys=[
       'id_empresas','razon_social','ruc','titulo','estado','direccion',
       'departamento','provincia','distrito','actividad_economica','sector_economico',
-      'telefono','correo','area_final','tipo_final','areas_detectadas','tipos_detectados'
+      'telefono','correo','area_final','tipo_final','areas_detectadas'
     ];
     const out={};
     keys.forEach(k=> out[k]= o[k] ?? o[k?.toUpperCase?.()] ?? o[k?.toLowerCase?.()] ?? '');
@@ -431,7 +431,7 @@
     $('#m-mail').textContent=d.correo||'—';
     $('#m-tel').textContent=d.telefono||'—';
     $('#m-areas-det').textContent=d.areas_detectadas||'—';
-    $('#m-tipos-det').textContent=d.tipos_detectados||'—';
+    // $('#m-tipos-det').textContent=d.tipos_detectados||'—';
     document.getElementById('modal').showModal();
   }
 
@@ -441,7 +441,7 @@
       'id_empresas','ruc','razon_social','titulo',
       'area_final','tipo_final','departamento','provincia','distrito',
       'actividad_economica','sector_economico','telefono','correo',
-      'areas_detectadas','tipos_detectados'
+      'areas_detectadas'
     ];
     const sep=';';
     const rows=[headers.join(sep)]
