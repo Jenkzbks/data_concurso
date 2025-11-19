@@ -193,7 +193,7 @@
           <table id="table">
             <thead>
               <tr>
-                <th>ID</th><th>RUC</th><th>Razón social</th><th>Título</th><th>Área (Final)</th><th>Tipo de proyecto</th>
+                <th>ID</th><th>RUC</th><th>Razón social</th><th>Título</th><th>Área (Final)</th><th>Tipo de proyecto</th><th></th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -396,8 +396,19 @@
     });
     data.forEach(d=>{
       const tr=document.createElement('tr');
-      tr.innerHTML = `<td>${d.id_empresas||''}</td><td>${d.ruc||''}</td><td>${d.razon_social||''}</td><td>${d.titulo||''}</td><td>${d.area_final||''}</td><td>${d.tipo_final||''}</td>`;
-      tr.addEventListener('click',()=>openModal(d));
+      tr.innerHTML = `
+        <td>${d.id_empresas||''}</td>
+        <td>${d.ruc||''}</td>
+        <td>${d.razon_social||''}</td>
+        <td>${d.titulo||''}</td>
+        <td>${d.area_final||''}</td>
+        <td>${d.tipo_final||''}</td>
+        <td><button class="btn ghost btn-ver" type="button">Ver</button></td>
+      `;
+      tr.querySelector('.btn-ver').addEventListener('click', e => {
+        e.stopPropagation();
+        openModal(d);
+      });
       tb.appendChild(tr);
     });
   }
