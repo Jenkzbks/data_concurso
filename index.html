@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Data Concurso - Dashboard</title>
@@ -186,9 +188,10 @@
 
       <!-- Tabla completa -->
       <div class="view" id="v-tabla">
-        <div class="row" style="margin-bottom:10px">
-          <input id="search" placeholder="Buscar (RUC, Razón, Título, Área, Tipo…)" style="min-width:300px" />
-        </div>
+        <!-- La búsqueda la maneja DataTables -->
+          <!-- jQuery y DataTables JS -->
+          <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+          <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
         <div style="overflow:auto; max-height:540px">
           <table id="table">
             <thead>
@@ -389,12 +392,7 @@
 
   function renderTable(){
     const tb = $('#table tbody'); if(!tb) return; tb.innerHTML='';
-    const q = ($('#search')?.value || '').trim().toLowerCase();
-    const data = !q ? VIEW : VIEW.filter(d=>{
-      return ['ruc','razon_social','titulo','area_final','tipo_final','departamento','provincia','distrito']
-        .some(k => (d[k]||'').toString().toLowerCase().includes(q));
-    });
-    data.forEach(d=>{
+    VIEW.forEach(d=>{
       const tr=document.createElement('tr');
       tr.innerHTML = `
         <td>${d.id_empresas||''}</td>
@@ -414,6 +412,21 @@
       });
       tb.appendChild(tr);
     });
+    // Inicializar DataTables (destruir si ya existe)
+    if (window.jQuery && $.fn.DataTable) {
+      if ($.fn.DataTable.isDataTable('#table')) {
+        $('#table').DataTable().destroy();
+      }
+      $('#table').DataTable({
+        language: {
+          url: 'https://cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json'
+        },
+        order: [],
+        pageLength: 10,
+        lengthMenu: [5, 10, 25, 50, 100],
+        columnDefs: [ { orderable: false, targets: -1 } ]
+      });
+    }
   }
 
   function renderViews(){
@@ -469,7 +482,7 @@
   }
 
   // ===== Eventos =====
-  document.addEventListener('input', e=>{ if(e.target && (e.target.id==='search')) renderTable(); });
+  // La búsqueda la maneja DataTables
   $$('.tab').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       $$('.tab').forEach(b=>b.classList.remove('active'));
