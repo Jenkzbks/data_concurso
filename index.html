@@ -305,7 +305,9 @@
     });
   }
 
-  function renderLegend(el, pairs){ el.innerHTML = pairs.map(([k,v],i)=>`<div class="item"><span class="sw" style="background:${pickColor(i)}"></span><span style="min-width:180px;display:inline-block">${k}</span><b>${fmt(v)}</b></div>`).join(''); }
+  function renderLegend(el, pairs){
+    el.innerHTML = pairs.map(([k,v],i)=>`<div class="item"><span class="sw" style="background:${pickColor(i)}"></span><span style="min-width:180px;display:inline-block">${k}</span><b>${fmt(v)}</b></div>`).join('');
+  }
 
   function renderHeatmap(el, counts){
     el.innerHTML=''; if(!counts.length){ el.textContent='Sin datos'; return; }
@@ -325,8 +327,14 @@
   // ========== Data & UI ==========
   let RAW=[], VIEW=[];
   function normalizeKeys(o){
-    const keys=['id_empresas','razon_social','ruc','titulo','estado','direccion','departamento','provincia','distrito','actividad_economica','sector_economico','telefono','correo','area_final','tipo_final','areas_detectadas','tipos_detectados'];
-    const out={}; keys.forEach(k=> out[k]= o[k] ?? o[k?.toUpperCase?.()] ?? o[k?.toLowerCase?.()] ?? ''); return out;
+    const keys=[
+      'id_empresas','razon_social','ruc','titulo','estado','direccion',
+      'departamento','provincia','distrito','actividad_economica','sector_economico',
+      'telefono','correo','area_final','tipo_final','areas_detectadas','tipos_detectados'
+    ];
+    const out={};
+    keys.forEach(k=> out[k]= o[k] ?? o[k?.toUpperCase?.()] ?? o[k?.toLowerCase?.()] ?? '');
+    return out;
   }
 
   function loadData(rows){
@@ -363,9 +371,9 @@
     $('#kpi-tipos').textContent = fmt(uniq(VIEW.map(d=>(d.tipo_final||'').toUpperCase())).length);
     $('#kpi-tel').textContent   = fmt(VIEW.filter(d=> (d.telefono||'').trim()).length);
     $('#kpi-mail').textContent  = fmt(VIEW.filter(d=> (d.correo||'').trim()).length);
-    // badge % principal en donut
     const total = Math.max(1, VIEW.length);
-    const top = groupCount(VIEW,'tipo_final')[0]; const pct = top ? (top[1]/total*100).toFixed(1) : 0;
+    const top = groupCount(VIEW,'tipo_final')[0];
+    const pct = top ? (top[1]/total*100).toFixed(1) : 0;
     $('#pill-tipo').textContent = `${pct}% top`;
   }
 
@@ -389,13 +397,15 @@
     data.forEach(d=>{
       const tr=document.createElement('tr');
       tr.innerHTML = `<td>${d.id_empresas||''}</td><td>${d.ruc||''}</td><td>${d.razon_social||''}</td><td>${d.titulo||''}</td><td>${d.area_final||''}</td><td>${d.tipo_final||''}</td>`;
-      tr.addEventListener('click',()=>openModal(d)); tb.appendChild(tr);
+      tr.addEventListener('click',()=>openModal(d));
+      tb.appendChild(tr);
     });
   }
 
   function renderViews(){
     renderGeneral();
-    const depaCounts = groupCount(VIEW,'departamento'); renderHeatmap($('#heatmap'), depaCounts);
+    const depaCounts = groupCount(VIEW,'departamento');
+    renderHeatmap($('#heatmap'), depaCounts);
 
     const selDep = $('#select-depa').value || '';
     const grpKey = $('#group-by').value || 'area_final';
@@ -410,36 +420,63 @@
   function refreshAll(){ applyFilters(); updateKpis(); renderViews(); }
 
   function openModal(d){
-    const dep=(d.departamento||'').toString().trim(), pro=(d.provincia||'').toString().trim(), dis=(d.distrito||'').toString().trim();
+    const dep=(d.departamento||'').toString().trim(),
+          pro=(d.provincia||'').toString().trim(),
+          dis=(d.distrito||'').toString().trim();
     const lugar=[dep,pro,dis].filter(Boolean).join(' / ') || '—';
-    $('#m-ruc').textContent=d.ruc||'—'; $('#m-razon').textContent=d.razon_social||'—';
-    $('#m-lugar').textContent=lugar; $('#m-actividad').textContent=d.actividad_economica||'—';
-    $('#m-mail').textContent=d.correo||'—'; $('#m-tel').textContent=d.telefono||'—';
-    $('#m-areas-det').textContent=d.areas_detectadas||'—'; $('#m-tipos-det').textContent=d.tipos_detectados||'—';
+    $('#m-ruc').textContent=d.ruc||'—';
+    $('#m-razon').textContent=d.razon_social||'—';
+    $('#m-lugar').textContent=lugar;
+    $('#m-actividad').textContent=d.actividad_economica||'—';
+    $('#m-mail').textContent=d.correo||'—';
+    $('#m-tel').textContent=d.telefono||'—';
+    $('#m-areas-det').textContent=d.areas_detectadas||'—';
+    $('#m-tipos-det').textContent=d.tipos_detectados||'—';
     document.getElementById('modal').showModal();
   }
 
   // ===== Export CSV (filtro) =====
   function exportCSV(){
-    const headers = ['id_empresas','ruc','razon_social','titulo','area_final','tipo_final','departamento','provincia','distrito','actividad_economica','sector_economico','telefono','correo','areas_detectadas','tipos_detectados'];
+    const headers = [
+      'id_empresas','ruc','razon_social','titulo',
+      'area_final','tipo_final','departamento','provincia','distrito',
+      'actividad_economica','sector_economico','telefono','correo',
+      'areas_detectadas','tipos_detectados'
+    ];
     const sep=';';
     const rows=[headers.join(sep)]
       .concat(VIEW.map(d=>headers.map(h=> (d[h]||'').replace(/;/g,',')).join(sep)));
     const blob=new Blob([rows.join('\n')],{type:'text/csv;charset=utf-8;'});
-    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='export_filtrado.csv'; a.click();
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='export_filtrado.csv';
+    a.click();
     URL.revokeObjectURL(a.href);
   }
 
   // ===== Eventos =====
   document.addEventListener('input', e=>{ if(e.target && (e.target.id==='search')) renderTable(); });
-  $$('.tab').forEach(btn=>{ btn.addEventListener('click', ()=>{ $$('.tab').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); $$('.view').forEach(v=>v.classList.remove('active')); document.getElementById(btn.dataset.view).classList.add('active'); }); });
+  $$('.tab').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      $$('.tab').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      $$('.view').forEach(v=>v.classList.remove('active'));
+      document.getElementById(btn.dataset.view).classList.add('active');
+    });
+  });
   $('#select-depa').addEventListener('change', renderViews);
   $('#group-by').addEventListener('change', renderViews);
 
   $('#filter-area').addEventListener('change', refreshAll);
   $('#filter-tipo').addEventListener('change', refreshAll);
   $('#filter-depa').addEventListener('change', refreshAll);
-  $('#btn-clear').addEventListener('click', ()=>{ $('#filter-area').value=''; $('#filter-tipo').value=''; $('#filter-depa').value=''; $('#select-depa').value=''; refreshAll(); });
+  $('#btn-clear').addEventListener('click', ()=>{
+    $('#filter-area').value='';
+    $('#filter-tipo').value='';
+    $('#filter-depa').value='';
+    $('#select-depa').value='';
+    refreshAll();
+  });
   $('#btn-export').addEventListener('click', exportCSV);
 
   // ===== Carga CSV =====
